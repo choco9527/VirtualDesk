@@ -21,7 +21,10 @@ async fn list_apps(app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, Stri
 }
 
 #[tauri::command]
-async fn start_workspace(app: tauri::AppHandle, app_path: Option<String>) -> Result<serde_json::Value, String> {
+async fn start_workspace(
+    app: tauri::AppHandle,
+    app_path: Option<String>,
+) -> Result<serde_json::Value, String> {
     let manager = app.state::<AgentManager>();
     manager
         .request(
@@ -41,13 +44,17 @@ async fn start_workspace(app: tauri::AppHandle, app_path: Option<String>) -> Res
 #[tauri::command]
 async fn stop_workspace(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     let manager = app.state::<AgentManager>();
-    manager.request("stop_workspace", serde_json::json!({})).await
+    manager
+        .request("stop_workspace", serde_json::json!({}))
+        .await
 }
 
 #[tauri::command]
 async fn capture_screen(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     let manager = app.state::<AgentManager>();
-    manager.request("capture_screen", serde_json::json!({})).await
+    manager
+        .request("capture_screen", serde_json::json!({}))
+        .await
 }
 
 pub fn run() {
