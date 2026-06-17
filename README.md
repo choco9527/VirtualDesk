@@ -35,9 +35,11 @@ Supported requests:
 
 ```json
 {"id":"1","method":"status","params":{}}
-{"id":"2","method":"list_displays","params":{}}
-{"id":"3","method":"start_workspace","params":{"app_path":"/Applications/Codex.app","width":1440,"height":900,"refresh_rate":60}}
-{"id":"4","method":"stop_workspace","params":{}}
+{"id":"2","method":"accessibility_status","params":{}}
+{"id":"3","method":"request_accessibility","params":{}}
+{"id":"4","method":"list_displays","params":{}}
+{"id":"5","method":"start_workspace","params":{"app_path":"/Applications/Codex.app","width":1440,"height":900,"refresh_rate":60}}
+{"id":"6","method":"stop_workspace","params":{}}
 ```
 
 Responses and events are single-line JSON:

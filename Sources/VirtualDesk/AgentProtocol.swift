@@ -13,6 +13,8 @@ struct CommandRequest<Params: Decodable>: Decodable {
 
 enum AgentMethod: String, Codable {
     case status
+    case accessibilityStatus = "accessibility_status"
+    case requestAccessibility = "request_accessibility"
     case listDisplays = "list_displays"
     case startWorkspace = "start_workspace"
     case stopWorkspace = "stop_workspace"
@@ -53,4 +55,10 @@ struct MessageResult: Codable {
 
 struct DisplayListResult: Codable {
     let displays: [DisplaySnapshot]
+}
+
+struct AccessibilityResult: Codable {
+    let trusted: Bool
+    let promptShown: Bool
+    let message: String?
 }

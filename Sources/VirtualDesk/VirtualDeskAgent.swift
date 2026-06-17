@@ -50,6 +50,10 @@ final class VirtualDeskAgent {
             switch request.method {
             case .status:
                 sendStatus(id: request.id)
+            case .accessibilityStatus:
+                sendAccessibilityStatus(id: request.id, prompt: false)
+            case .requestAccessibility:
+                sendAccessibilityStatus(id: request.id, prompt: true)
             case .listDisplays:
                 sendDisplayList(id: request.id)
             case .startWorkspace:
@@ -68,6 +72,17 @@ final class VirtualDeskAgent {
 
     private func sendDisplayList(id: String) {
         router.send(CommandResponse.success(id: id, result: session.listDisplays()))
+    }
+
+    private func sendAccessibilityStatus(id: String, prompt: Bool) {
+        let trusted = accessibilityService.isTrusted(prompt: prompt)
+        let result = AccessibilityResult(
+            trusted: trusted,
+            promptShown: prompt && !trusted,
+            message: trusted ? nil : "Enable VirtualDesk in System Settings > Privacy & Security > Accessibility."
+        )
+
+        router.send(CommandResponse.success(id: id, result: result))
     }
 
     private func startWorkspace(data: Data) throws {
