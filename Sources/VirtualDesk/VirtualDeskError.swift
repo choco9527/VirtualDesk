@@ -12,6 +12,7 @@ enum VirtualDeskError: LocalizedError {
     case lockUnavailable(String)
     case invalidCommand(String)
     case internalError(String)
+    case screenCaptureUnavailable(String)
     case virtualDisplayCreateFailed(String)
     case virtualDisplayNotReady(UInt32)
     case workspaceAlreadyRunning
@@ -33,6 +34,8 @@ enum VirtualDeskError: LocalizedError {
             return "APP_NOT_RUNNING"
         case .jsonEncodingFailed, .lockUnavailable, .invalidCommand, .internalError:
             return "INTERNAL_ERROR"
+        case .screenCaptureUnavailable:
+            return "SCREEN_CAPTURE_UNAVAILABLE"
         case .virtualDisplayCreateFailed:
             return "VIRTUAL_DISPLAY_CREATE_FAILED"
         case .virtualDisplayNotReady:
@@ -76,6 +79,8 @@ enum VirtualDeskError: LocalizedError {
             return "Invalid command: \(reason)"
         case let .internalError(reason):
             return reason
+        case let .screenCaptureUnavailable(reason):
+            return "Screen capture unavailable: \(reason)"
         case let .virtualDisplayCreateFailed(reason):
             return "Failed to create virtual display: \(reason)."
         case let .virtualDisplayNotReady(displayID):

@@ -6,3 +6,13 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+
+# JavaScript / Tauri
+node_modules/
+src-ui/node_modules/
+src-ui/dist/
+src-tauri/node_modules/
+src-tauri/target/
+
+# Tauri generated sidecars
+/src-tauri/binaries/*

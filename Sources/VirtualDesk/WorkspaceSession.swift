@@ -162,6 +162,16 @@ final class WorkspaceSession {
         AppListResult(apps: appService.listRunnableApps())
     }
 
+    func captureScreen() throws -> ScreenCaptureResult {
+        try queue.sync {
+            guard let displayID = virtualDisplay?.displayID else {
+                throw VirtualDeskError.workspaceNotRunning
+            }
+
+            return try ScreenCaptureService.capture(displayID: displayID)
+        }
+    }
+
     private func startTimer(configuration: VirtualDeskConfiguration, guardian: WindowGuardian) {
         let createdTimer = DispatchSource.makeTimerSource(queue: queue)
         createdTimer.schedule(

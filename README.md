@@ -26,6 +26,23 @@ swift run VirtualDesk pin
 swift run VirtualDesk watch
 ```
 
+## App Shell
+
+The repository now includes a Tauri + React shell that moves toward the final product UI:
+
+- Left panel: running app list in a two-column layout.
+- Top switch: starts or stops the virtual workspace through the agent sidecar.
+- Right panel: phone-sized virtual screen frame.
+- Current preview: visual placeholder. Live screen content still needs ScreenCaptureKit integration.
+
+```bash
+npm install --prefix src-ui
+npm install --prefix src-tauri
+npm run build:agent
+npm --prefix src-ui run build
+cargo check --manifest-path src-tauri/Cargo.toml
+```
+
 ## Agent Mode
 
 `agent` runs a persistent NDJSON protocol over stdin/stdout. Logs stay on stderr.

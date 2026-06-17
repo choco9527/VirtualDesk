@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "VirtualDesk",
+  "version": "0.1.0",
+  "identifier": "com.choco9527.virtualdesk",
+  "build": {
+    "beforeDevCommand": "npm --prefix ../src-ui run dev",
+    "beforeBuildCommand": "npm --prefix ../src-ui run build",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../src-ui/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "VirtualDesk",
+        "width": 1120,
+        "height": 760,
+        "minWidth": 980,
+        "minHeight": 680
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "macOSPrivateApi": true
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg"],
+    "externalBin": ["binaries/virtualdesk-agent"],
+    "macOS": {
+      "minimumSystemVersion": "13.0"
+    }
+  }
+}

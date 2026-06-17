@@ -66,6 +66,8 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
                 sendDisplayList(id: request.id)
             case .listApps:
                 sendAppList(id: request.id)
+            case .captureScreen:
+                sendScreenCapture(id: request.id)
             case .startWorkspace:
                 try startWorkspace(data: data)
             case .stopWorkspace:
@@ -86,7 +88,8 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
                 virtualDisplay: true,
                 windowControl: true,
                 stopWorkspace: true,
-                listApps: true
+                listApps: true,
+                captureScreen: true
             )
         )
         router.send(CommandResponse.success(id: id, result: result))
@@ -102,6 +105,16 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
 
     private func sendAppList(id: String) {
         router.send(CommandResponse.success(id: id, result: session.listApps()))
+    }
+
+    private func sendScreenCapture(id: String) {
+        do {
+            router.send(CommandResponse.success(id: id, result: try session.captureScreen()))
+        } catch {
+            let payload = (error as? VirtualDeskError)?.payload
+                ?? VirtualDeskError.internalError(error.localizedDescription).payload
+            router.sendFailure(id: id, error: payload)
+        }
     }
 
     private func sendAccessibilityStatus(id: String, prompt: Bool) {
