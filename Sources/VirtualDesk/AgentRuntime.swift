@@ -2,8 +2,8 @@ import Darwin
 import Foundation
 
 struct AgentRuntime {
-    static let lockPath = "/tmp/deskbridge-agent.lock"
-    static let statePath = "/tmp/deskbridge-agent-state.json"
+    static let lockPath = "/tmp/virtualdesk-agent.lock"
+    static let statePath = "/tmp/virtualdesk-agent-state.json"
 }
 
 final class AgentLock {
@@ -23,12 +23,12 @@ final class AgentLock {
     static func acquire(path: String = AgentRuntime.lockPath) throws -> AgentLock {
         let fileDescriptor = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
         guard fileDescriptor >= 0 else {
-            throw DeskBridgeError.lockUnavailable("Could not open lock file at \(path).")
+            throw VirtualDeskError.lockUnavailable("Could not open lock file at \(path).")
         }
 
         guard flock(fileDescriptor, LOCK_EX | LOCK_NB) == 0 else {
             close(fileDescriptor)
-            throw DeskBridgeError.agentAlreadyRunning(path)
+            throw VirtualDeskError.agentAlreadyRunning(path)
         }
 
         let pid = "\(getpid())\n"
@@ -74,7 +74,7 @@ struct AgentStateStore {
     }
 
     func save(_ status: AgentStatus) throws {
-        let data = try JSONEncoder.deskBridge.encode(status)
+        let data = try JSONEncoder.virtualDesk.encode(status)
         try data.write(to: URL(fileURLWithPath: path), options: [.atomic])
     }
 
@@ -85,7 +85,7 @@ struct AgentStateStore {
             return nil
         }
 
-        return try? JSONDecoder.deskBridge.decode(AgentStatus.self, from: data)
+        return try? JSONDecoder.virtualDesk.decode(AgentStatus.self, from: data)
     }
 
     func loadRawString() -> String? {

@@ -1,6 +1,6 @@
 import CoreGraphics
 import XCTest
-@testable import DeskBridge
+@testable import VirtualDesk
 
 final class FramePolicyTests: XCTestCase {
     func testDoesNotMoveWhenFrameMatchesWithinTolerance() {

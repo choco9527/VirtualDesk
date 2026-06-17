@@ -55,7 +55,7 @@ DBVirtualDisplayRef DBVirtualDisplayCreate(
     }
 
     NSString *displayName = name == NULL
-        ? @"DeskBridge Virtual Display"
+        ? @"VirtualDesk Virtual Display"
         : [NSString stringWithUTF8String:name];
 
     CGVirtualDisplayDescriptor *descriptor = [[CGVirtualDisplayDescriptor alloc] init];

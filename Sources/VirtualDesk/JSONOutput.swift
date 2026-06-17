@@ -1,7 +1,7 @@
 import Foundation
 
 extension JSONEncoder {
-    static var deskBridge: JSONEncoder {
+    static var virtualDesk: JSONEncoder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.keyEncodingStrategy = .convertToSnakeCase
@@ -10,7 +10,7 @@ extension JSONEncoder {
 }
 
 extension JSONDecoder {
-    static var deskBridge: JSONDecoder {
+    static var virtualDesk: JSONDecoder {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return decoder
@@ -19,10 +19,10 @@ extension JSONDecoder {
 
 enum JSONOutput {
     static func print<T: Encodable>(_ value: T) throws {
-        let data = try JSONEncoder.deskBridge.encode(value)
+        let data = try JSONEncoder.virtualDesk.encode(value)
 
         guard let output = String(data: data, encoding: .utf8) else {
-            throw DeskBridgeError.jsonEncodingFailed
+            throw VirtualDeskError.jsonEncodingFailed
         }
 
         Swift.print(output)

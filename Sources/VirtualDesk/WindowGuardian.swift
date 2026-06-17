@@ -2,13 +2,13 @@ import CoreGraphics
 import Foundation
 
 final class WindowGuardian {
-    private let configuration: DeskBridgeConfiguration
+    private let configuration: VirtualDeskConfiguration
     private let displayService: DisplayServicing
     private let appService: AppServicing
     private let accessibilityService: AccessibilityServicing
 
     init(
-        configuration: DeskBridgeConfiguration,
+        configuration: VirtualDeskConfiguration,
         displayService: DisplayServicing,
         appService: AppServicing,
         accessibilityService: AccessibilityServicing
@@ -48,7 +48,7 @@ final class WindowGuardian {
 
     private func targetDisplay() throws -> ManagedDisplay {
         guard let display = displayService.findDisplay(matching: configuration.targetDisplayKeywords) else {
-            throw DeskBridgeError.targetDisplayNotFound(configuration.targetDisplayKeywords)
+            throw VirtualDeskError.targetDisplayNotFound(configuration.targetDisplayKeywords)
         }
 
         return display

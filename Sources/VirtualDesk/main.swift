@@ -1,6 +1,6 @@
 import Foundation
 
-let cli = DeskBridgeCLI(
+let cli = VirtualDeskCLI(
     displayService: MacDisplayService(),
     virtualDisplayProvisioner: CGVirtualDisplayProvisioner(),
     appService: MacAppService(),

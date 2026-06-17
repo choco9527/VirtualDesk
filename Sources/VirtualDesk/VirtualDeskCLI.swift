@@ -1,11 +1,11 @@
 import Foundation
 
-final class DeskBridgeCLI {
+final class VirtualDeskCLI {
     private let displayService: DisplayServicing
     private let virtualDisplayProvisioner: VirtualDisplayProvisioning
     private let appService: AppServicing
     private let accessibilityService: AccessibilityServicing
-    private let configuration = DeskBridgeConfiguration.pocDefault
+    private let configuration = VirtualDeskConfiguration.pocDefault
     private let stateStore = AgentStateStore()
 
     init(
@@ -71,7 +71,7 @@ final class DeskBridgeCLI {
                 try JSONOutput.print(AgentStatus.runningUnknown(
                     configuration: configuration,
                     pid: AgentLock.readPID(),
-                    message: "DeskBridge lock is held but no status file is available."
+                    message: "VirtualDesk lock is held but no status file is available."
                 ))
                 return
             }
@@ -137,7 +137,7 @@ final class DeskBridgeCLI {
     private func watch() {
         do {
             try ensureAccessibility()
-            print("DeskBridge watching \(configuration.targetAppPath). Press Ctrl-C to stop.")
+            print("VirtualDesk watching \(configuration.targetAppPath). Press Ctrl-C to stop.")
             let guardian = WindowGuardian(
                 configuration: configuration,
                 displayService: displayService,
@@ -152,13 +152,13 @@ final class DeskBridgeCLI {
 
     private func ensureAccessibility() throws {
         guard accessibilityService.isTrusted(prompt: true) else {
-            throw DeskBridgeError.accessibilityPermissionMissing
+            throw VirtualDeskError.accessibilityPermissionMissing
         }
     }
 
     private func targetDisplay() throws -> ManagedDisplay {
         guard let display = displayService.findDisplay(matching: configuration.targetDisplayKeywords) else {
-            throw DeskBridgeError.targetDisplayNotFound(configuration.targetDisplayKeywords)
+            throw VirtualDeskError.targetDisplayNotFound(configuration.targetDisplayKeywords)
         }
 
         return display
@@ -166,12 +166,12 @@ final class DeskBridgeCLI {
 
     private func printHelp() {
         print("""
-        DeskBridge POC
+        VirtualDesk POC
 
         Commands:
           start          Create a virtual display and keep Codex pinned to it
           status         Print current agent status as JSON
-          create-screen  Create only the DeskBridge virtual display
+          create-screen  Create only the VirtualDesk virtual display
           list   List displays and mark likely BetterDisplay virtual displays
           pin    Move Codex to the target virtual display once
           watch  Keep Codex pinned to the target virtual display

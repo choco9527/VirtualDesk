@@ -43,13 +43,13 @@ final class CGVirtualDisplayProvisioner: VirtualDisplayProvisioning {
 
         guard let rawDisplay else {
             let reason = String(cString: errorBuffer)
-            throw DeskBridgeError.virtualDisplayCreateFailed(reason.isEmpty ? "Unknown error" : reason)
+            throw VirtualDeskError.virtualDisplayCreateFailed(reason.isEmpty ? "Unknown error" : reason)
         }
 
         let displayID = DBVirtualDisplayGetDisplayID(rawDisplay)
         guard displayID != 0 else {
             DBVirtualDisplayRelease(rawDisplay)
-            throw DeskBridgeError.virtualDisplayCreateFailed("Created display returned displayID=0.")
+            throw VirtualDeskError.virtualDisplayCreateFailed("Created display returned displayID=0.")
         }
 
         return VirtualDisplayHandle(rawDisplay: rawDisplay, displayID: displayID)

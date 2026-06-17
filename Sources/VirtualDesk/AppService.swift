@@ -48,6 +48,6 @@ final class MacAppService: AppServicing {
             return launchedApp
         }
 
-        throw launchError ?? DeskBridgeError.appLaunchFailed(url.path)
+        throw launchError ?? VirtualDeskError.appLaunchFailed(url.path)
     }
 }

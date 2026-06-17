@@ -1,6 +1,6 @@
 import Foundation
 
-struct DeskBridgeConfiguration {
+struct VirtualDeskConfiguration {
     let targetAppPath: String
     let targetDisplayKeywords: [String]
     let virtualDisplayName: String
@@ -9,10 +9,10 @@ struct DeskBridgeConfiguration {
     let virtualDisplayRefreshRate: Double
     let guardianInterval: TimeInterval
 
-    static let pocDefault = DeskBridgeConfiguration(
+    static let pocDefault = VirtualDeskConfiguration(
         targetAppPath: "/Applications/Codex.app",
-        targetDisplayKeywords: ["DeskBridge", "BetterDisplay", "Virtual"],
-        virtualDisplayName: "DeskBridge Virtual Display",
+        targetDisplayKeywords: ["VirtualDesk", "BetterDisplay", "Virtual"],
+        virtualDisplayName: "VirtualDesk Virtual Display",
         virtualDisplayWidth: 1440,
         virtualDisplayHeight: 900,
         virtualDisplayRefreshRate: 60,

@@ -34,7 +34,7 @@ final class MacAccessibilityService: AccessibilityServicing {
             return ManagedWindow(app: app, element: firstWindow)
         }
 
-        throw DeskBridgeError.windowNotFound(app.localizedName ?? app.bundleIdentifier ?? "target app")
+        throw VirtualDeskError.windowNotFound(app.localizedName ?? app.bundleIdentifier ?? "target app")
     }
 
     func move(window: ManagedWindow, to frame: CGRect) throws {
@@ -64,7 +64,7 @@ final class MacAccessibilityService: AccessibilityServicing {
             return nil
         }
 
-        throw DeskBridgeError.windowMoveFailed("AX read \(attribute) failed with \(result.rawValue).")
+        throw VirtualDeskError.windowMoveFailed("AX read \(attribute) failed with \(result.rawValue).")
     }
 
     private func windows(appElement: AXUIElement) throws -> [AXUIElement] {
@@ -75,7 +75,7 @@ final class MacAccessibilityService: AccessibilityServicing {
             return (value as? [AXUIElement]) ?? []
         }
 
-        throw DeskBridgeError.windowMoveFailed("AX read windows failed with \(result.rawValue).")
+        throw VirtualDeskError.windowMoveFailed("AX read windows failed with \(result.rawValue).")
     }
 
     private func point(attribute: String, element: AXUIElement) throws -> CGPoint {
@@ -83,7 +83,7 @@ final class MacAccessibilityService: AccessibilityServicing {
         let result = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
 
         guard result == .success, let axValue = value else {
-            throw DeskBridgeError.windowMoveFailed("AX read \(attribute) failed with \(result.rawValue).")
+            throw VirtualDeskError.windowMoveFailed("AX read \(attribute) failed with \(result.rawValue).")
         }
 
         var point = CGPoint.zero
@@ -96,7 +96,7 @@ final class MacAccessibilityService: AccessibilityServicing {
         let result = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
 
         guard result == .success, let axValue = value else {
-            throw DeskBridgeError.windowMoveFailed("AX read \(attribute) failed with \(result.rawValue).")
+            throw VirtualDeskError.windowMoveFailed("AX read \(attribute) failed with \(result.rawValue).")
         }
 
         var size = CGSize.zero
@@ -107,7 +107,7 @@ final class MacAccessibilityService: AccessibilityServicing {
     private func set(point: CGPoint, attribute: String, element: AXUIElement) throws {
         var mutablePoint = point
         guard let value = AXValueCreate(.cgPoint, &mutablePoint) else {
-            throw DeskBridgeError.windowMoveFailed("Could not create AX point value.")
+            throw VirtualDeskError.windowMoveFailed("Could not create AX point value.")
         }
 
         try set(value: value, attribute: attribute, element: element)
@@ -116,7 +116,7 @@ final class MacAccessibilityService: AccessibilityServicing {
     private func set(size: CGSize, attribute: String, element: AXUIElement) throws {
         var mutableSize = size
         guard let value = AXValueCreate(.cgSize, &mutableSize) else {
-            throw DeskBridgeError.windowMoveFailed("Could not create AX size value.")
+            throw VirtualDeskError.windowMoveFailed("Could not create AX size value.")
         }
 
         try set(value: value, attribute: attribute, element: element)
@@ -126,7 +126,7 @@ final class MacAccessibilityService: AccessibilityServicing {
         let result = AXUIElementSetAttributeValue(element, attribute as CFString, value)
 
         guard result == .success else {
-            throw DeskBridgeError.windowMoveFailed("AX set \(attribute) failed with \(result.rawValue).")
+            throw VirtualDeskError.windowMoveFailed("AX set \(attribute) failed with \(result.rawValue).")
         }
     }
 }

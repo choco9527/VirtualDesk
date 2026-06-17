@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "DeskBridge",
+    name: "VirtualDesk",
     platforms: [
         .macOS(.v13)
     ],
@@ -18,12 +18,12 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "DeskBridge",
+            name: "VirtualDesk",
             dependencies: ["CGVirtualDisplayBridge"]
         ),
         .testTarget(
-            name: "DeskBridgeTests",
-            dependencies: ["DeskBridge"]
+            name: "VirtualDeskTests",
+            dependencies: ["VirtualDesk"]
         ),
     ]
 )

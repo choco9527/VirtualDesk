@@ -10,7 +10,7 @@ struct AgentStatus: Codable {
     let guardStatus: GuardSnapshot
     let message: String?
 
-    static func stopped(configuration: DeskBridgeConfiguration, message: String? = nil) -> AgentStatus {
+    static func stopped(configuration: VirtualDeskConfiguration, message: String? = nil) -> AgentStatus {
         AgentStatus(
             state: .stopped,
             pid: 0,
@@ -23,7 +23,7 @@ struct AgentStatus: Codable {
     }
 
     static func runningUnknown(
-        configuration: DeskBridgeConfiguration,
+        configuration: VirtualDeskConfiguration,
         pid: Int32,
         message: String
     ) -> AgentStatus {

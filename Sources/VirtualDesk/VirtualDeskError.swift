@@ -1,6 +1,6 @@
 import Foundation
 
-enum DeskBridgeError: LocalizedError {
+enum VirtualDeskError: LocalizedError {
     case accessibilityPermissionMissing
     case agentAlreadyRunning(String)
     case targetDisplayNotFound([String])
@@ -18,7 +18,7 @@ enum DeskBridgeError: LocalizedError {
         case .accessibilityPermissionMissing:
             return "Accessibility permission is required. Enable it in System Settings > Privacy & Security > Accessibility."
         case let .agentAlreadyRunning(path):
-            return "DeskBridge is already running. lock=\(path)"
+            return "VirtualDesk is already running. lock=\(path)"
         case let .targetDisplayNotFound(keywords):
             return "Target display not found. Expected display name containing one of: \(keywords.joined(separator: ", "))."
         case let .appLaunchFailed(path):

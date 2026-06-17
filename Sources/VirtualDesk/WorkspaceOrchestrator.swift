@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 
 final class WorkspaceOrchestrator {
-    private let configuration: DeskBridgeConfiguration
+    private let configuration: VirtualDeskConfiguration
     private let virtualDisplayProvisioner: VirtualDisplayProvisioning
     private let displayService: DisplayServicing
     private let appService: AppServicing
@@ -10,7 +10,7 @@ final class WorkspaceOrchestrator {
     private let stateStore: AgentStateStore
 
     init(
-        configuration: DeskBridgeConfiguration,
+        configuration: VirtualDeskConfiguration,
         virtualDisplayProvisioner: VirtualDisplayProvisioning,
         displayService: DisplayServicing,
         appService: AppServicing,
@@ -40,7 +40,7 @@ final class WorkspaceOrchestrator {
         let display = try waitForDisplay(id: virtualDisplay.displayID)
 
         AgentLog.info("Created virtual display \(display.name) id=\(display.id).")
-        AgentLog.info("DeskBridge is keeping the display alive. Press Ctrl-C to stop.")
+        AgentLog.info("VirtualDesk is keeping the display alive. Press Ctrl-C to stop.")
 
         let guardian = WindowGuardian(
             configuration: configuration,
@@ -89,7 +89,7 @@ final class WorkspaceOrchestrator {
             Thread.sleep(forTimeInterval: 0.2)
         }
 
-        throw DeskBridgeError.virtualDisplayNotReady(id)
+        throw VirtualDeskError.virtualDisplayNotReady(id)
     }
 
     private func saveRunningStatus(display: ManagedDisplay) throws {
