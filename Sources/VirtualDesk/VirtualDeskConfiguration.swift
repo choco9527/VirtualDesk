@@ -18,4 +18,16 @@ struct VirtualDeskConfiguration {
         virtualDisplayRefreshRate: 60,
         guardianInterval: 1
     )
+
+    func overriding(_ params: StartWorkspaceParams?) -> VirtualDeskConfiguration {
+        VirtualDeskConfiguration(
+            targetAppPath: params?.appPath ?? targetAppPath,
+            targetDisplayKeywords: targetDisplayKeywords,
+            virtualDisplayName: virtualDisplayName,
+            virtualDisplayWidth: params?.width ?? virtualDisplayWidth,
+            virtualDisplayHeight: params?.height ?? virtualDisplayHeight,
+            virtualDisplayRefreshRate: params?.refreshRate ?? virtualDisplayRefreshRate,
+            guardianInterval: guardianInterval
+        )
+    }
 }

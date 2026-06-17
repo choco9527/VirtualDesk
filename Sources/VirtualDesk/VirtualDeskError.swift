@@ -8,8 +8,11 @@ enum VirtualDeskError: LocalizedError {
     case appNotRunning(String)
     case jsonEncodingFailed
     case lockUnavailable(String)
+    case invalidCommand(String)
     case virtualDisplayCreateFailed(String)
     case virtualDisplayNotReady(UInt32)
+    case workspaceAlreadyRunning
+    case workspaceNotRunning
     case windowNotFound(String)
     case windowMoveFailed(String)
 
@@ -29,10 +32,16 @@ enum VirtualDeskError: LocalizedError {
             return "Failed to encode JSON output."
         case let .lockUnavailable(reason):
             return reason
+        case let .invalidCommand(reason):
+            return "Invalid command: \(reason)"
         case let .virtualDisplayCreateFailed(reason):
             return "Failed to create virtual display: \(reason)."
         case let .virtualDisplayNotReady(displayID):
             return "Virtual display was created but not visible to NSScreen yet. displayID=\(displayID)."
+        case .workspaceAlreadyRunning:
+            return "Workspace is already running."
+        case .workspaceNotRunning:
+            return "Workspace is not running."
         case let .windowNotFound(appName):
             return "No controllable main window found for \(appName)."
         case let .windowMoveFailed(reason):

@@ -7,6 +7,13 @@ extension JSONEncoder {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         return encoder
     }
+
+    static var virtualDeskLine: JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        return encoder
+    }
 }
 
 extension JSONDecoder {

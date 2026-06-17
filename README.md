@@ -23,6 +23,30 @@ swift run VirtualDesk pin
 swift run VirtualDesk watch
 ```
 
+## Agent Mode
+
+`agent` runs a persistent NDJSON protocol over stdin/stdout. Logs stay on stderr.
+
+```bash
+swift run VirtualDesk agent
+```
+
+Supported requests:
+
+```json
+{"id":"1","method":"status","params":{}}
+{"id":"2","method":"list_displays","params":{}}
+{"id":"3","method":"start_workspace","params":{"app_path":"/Applications/Codex.app","width":1440,"height":900,"refresh_rate":60}}
+{"id":"4","method":"stop_workspace","params":{}}
+```
+
+Responses and events are single-line JSON:
+
+```json
+{"id":"1","ok":true,"result":{"state":"stopped"}}
+{"event":"workspace_stopped","data":{"state":"stopped"}}
+```
+
 ## Validation Flow
 
 1. Run `swift run VirtualDesk create-screen` and confirm macOS sees `VirtualDesk Virtual Display`.

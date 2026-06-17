@@ -24,6 +24,8 @@ final class VirtualDeskCLI {
         let command = arguments.dropFirst().first ?? "pin"
 
         switch command {
+        case "agent":
+            runAgent()
         case "status":
             printStatus()
         case "start":
@@ -54,6 +56,21 @@ final class VirtualDeskCLI {
         displays.forEach { display in
             let marker = display.matches(configuration.targetDisplayKeywords) ? "*" : " "
             print("\(marker) \(display.id) \(display.name) frame=\(display.frame) visible=\(display.visibleFrame)")
+        }
+    }
+
+    private func runAgent() {
+        do {
+            let agent = VirtualDeskAgent(
+                configuration: configuration,
+                virtualDisplayProvisioner: virtualDisplayProvisioner,
+                displayService: displayService,
+                appService: appService,
+                accessibilityService: accessibilityService
+            )
+            try agent.run()
+        } catch {
+            fail(error.localizedDescription)
         }
     }
 
@@ -169,6 +186,7 @@ final class VirtualDeskCLI {
         VirtualDesk POC
 
         Commands:
+          agent          Run persistent NDJSON agent over stdin/stdout
           start          Create a virtual display and keep Codex pinned to it
           status         Print current agent status as JSON
           create-screen  Create only the VirtualDesk virtual display
