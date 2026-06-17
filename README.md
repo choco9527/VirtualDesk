@@ -33,7 +33,7 @@ The repository now includes a Tauri + React shell that moves toward the final pr
 - Left panel: running app list in a two-column layout.
 - Top switch: starts or stops the virtual workspace through the agent sidecar.
 - Right panel: phone-sized virtual screen frame.
-- Current preview: visual placeholder. Live screen content still needs ScreenCaptureKit integration.
+- Current preview: polls `capture_screen` and renders PNG snapshots from the virtual display. ScreenCaptureKit is still the future path for smoother preview.
 
 ```bash
 npm install --prefix src-ui
@@ -60,14 +60,15 @@ Supported requests:
 {"id":"3","method":"request_accessibility","params":{}}
 {"id":"4","method":"list_displays","params":{}}
 {"id":"5","method":"list_apps","params":{}}
-{"id":"6","method":"start_workspace","params":{"app_path":"/Applications/Codex.app","width":1440,"height":900,"refresh_rate":60,"hidpi":true,"profile":"codex_mobile_1440x900"}}
-{"id":"7","method":"stop_workspace","params":{}}
+{"id":"6","method":"capture_screen","params":{}}
+{"id":"7","method":"start_workspace","params":{"app_path":"/Applications/Codex.app","width":1440,"height":900,"refresh_rate":60,"hidpi":true,"profile":"codex_mobile_1440x900"}}
+{"id":"8","method":"stop_workspace","params":{}}
 ```
 
 Responses and events are single-line JSON:
 
 ```json
-{"id":"0","ok":true,"result":{"platform":"macos","protocol_version":"1.0","supports":{"virtual_display":true,"window_control":true,"stop_workspace":true,"list_apps":true}}}
+{"id":"0","ok":true,"result":{"platform":"macos","protocol_version":"1.0","supports":{"virtual_display":true,"window_control":true,"stop_workspace":true,"list_apps":true,"capture_screen":true}}}
 {"id":"1","ok":false,"error":{"code":"INVALID_PARAMS","message":"Invalid params: refresh_rate must be one of: 30, 60, 120."}}
 {"event":"workspace_stopped","data":{"status":{"state":"stopped"},"reason":null}}
 ```
