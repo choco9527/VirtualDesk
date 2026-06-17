@@ -8,6 +8,7 @@ final class WorkspaceSession {
     private let appService: AppServicing
     private let accessibilityService: AccessibilityServicing
     private let stateStore: AgentStateStore
+    private let configurationStore: ConfigurationStore
     private let queue = DispatchQueue(label: "com.virtualdesk.workspace.session")
 
     private var activeConfiguration: VirtualDeskConfiguration?
@@ -15,6 +16,8 @@ final class WorkspaceSession {
     private var managedDisplay: ManagedDisplay?
     private var guardian: WindowGuardian?
     private var timer: DispatchSourceTimer?
+    private var observers = WorkspaceObservers()
+    weak var eventSink: WorkspaceSessionEventSink?
 
     init(
         configuration: VirtualDeskConfiguration,
@@ -22,7 +25,8 @@ final class WorkspaceSession {
         displayService: DisplayServicing,
         appService: AppServicing,
         accessibilityService: AccessibilityServicing,
-        stateStore: AgentStateStore = AgentStateStore()
+        stateStore: AgentStateStore = AgentStateStore(),
+        configurationStore: ConfigurationStore = ConfigurationStore()
     ) {
         self.baseConfiguration = configuration
         self.virtualDisplayProvisioner = virtualDisplayProvisioner
@@ -30,6 +34,7 @@ final class WorkspaceSession {
         self.appService = appService
         self.accessibilityService = accessibilityService
         self.stateStore = stateStore
+        self.configurationStore = configurationStore
     }
 
     deinit {
@@ -42,7 +47,11 @@ final class WorkspaceSession {
                 throw VirtualDeskError.workspaceAlreadyRunning
             }
 
-            let configuration = baseConfiguration.overriding(params)
+            let configuration = try VirtualDeskConfiguration.resolved(
+                base: baseConfiguration,
+                config: configurationStore.load(),
+                params: params
+            )
             try stateStore.save(makeStatus(
                 state: .starting,
                 configuration: configuration,
@@ -64,7 +73,18 @@ final class WorkspaceSession {
             virtualDisplay = createdDisplay
             managedDisplay = display
             guardian = createdGuardian
-            createdGuardian.enforceOnce()
+            try configurationStore.save(
+                VirtualDeskUserConfig(
+                    appPath: configuration.targetAppPath,
+                    width: configuration.virtualDisplayWidth,
+                    height: configuration.virtualDisplayHeight,
+                    refreshRate: configuration.virtualDisplayRefreshRate,
+                    hiDPI: configuration.virtualDisplayHiDPI,
+                    profile: params?.profile ?? VirtualDeskConfiguration.defaultProfileName
+                )
+            )
+            observeWorkspaceLifecycle(configuration: configuration)
+            handleGuardianResult(createdGuardian.enforceOnce(), configuration: configuration, display: display)
             startTimer(configuration: configuration, guardian: createdGuardian)
 
             let status = makeStatus(
@@ -75,6 +95,7 @@ final class WorkspaceSession {
             )
             try stateStore.save(status)
             AgentLog.info("Started workspace on \(display.name) id=\(display.id).")
+            emit(event: .workspaceStarted, status: status, reason: nil)
             return status
         }
     }
@@ -88,18 +109,17 @@ final class WorkspaceSession {
                 return status
             }
 
-            if let display = managedDisplay {
-                let stopping = makeStatus(
-                    state: .stopping,
-                    configuration: configuration,
-                    display: display,
-                    message: "Cleaning up workspace."
-                )
-                try? stateStore.save(stopping)
-            }
+            let stopping = makeStatus(
+                state: .stopping,
+                configuration: configuration,
+                display: managedDisplay,
+                message: "Cleaning up workspace."
+            )
+            try? stateStore.save(stopping)
 
             timer?.cancel()
             timer = nil
+            observers.removeAll()
             restoreTargetWindowToPrimaryDisplay(configuration: configuration)
             guardian = nil
             managedDisplay = nil
@@ -108,7 +128,9 @@ final class WorkspaceSession {
             stateStore.clear()
             AgentLog.info("Stopped workspace.")
 
-            return AgentStatus.stopped(configuration: configuration)
+            let status = AgentStatus.stopped(configuration: configuration)
+            emit(event: .workspaceStopped, status: status, reason: nil)
+            return status
         }
     }
 
@@ -136,14 +158,24 @@ final class WorkspaceSession {
         return DisplayListResult(displays: displays)
     }
 
+    func listApps() -> AppListResult {
+        AppListResult(apps: appService.listRunnableApps())
+    }
+
     private func startTimer(configuration: VirtualDeskConfiguration, guardian: WindowGuardian) {
         let createdTimer = DispatchSource.makeTimerSource(queue: queue)
         createdTimer.schedule(
             deadline: .now() + configuration.guardianInterval,
             repeating: configuration.guardianInterval
         )
-        createdTimer.setEventHandler { [weak guardian] in
-            guardian?.enforceOnce()
+        createdTimer.setEventHandler { [weak self, weak guardian] in
+            guard let self, let guardian else { return }
+            let result = guardian.enforceOnce()
+            guard let configuration = self.activeConfiguration,
+                  let display = self.managedDisplay else {
+                return
+            }
+            self.handleGuardianResult(result, configuration: configuration, display: display)
         }
         timer = createdTimer
         createdTimer.resume()
@@ -180,7 +212,10 @@ final class WorkspaceSession {
             state: state,
             pid: getpid(),
             display: display.map { DisplaySnapshot(display: $0, virtualDisplayID: virtualDisplay?.displayID) },
-            targetApp: TargetAppSnapshot(path: configuration.targetAppPath, bundleID: nil),
+            targetApp: TargetAppSnapshot(
+                path: configuration.targetAppPath,
+                bundleID: appService.runningApp(at: configuration.targetAppPath)?.bundleIdentifier
+            ),
             window: currentTargetWindowSnapshot(configuration: configuration),
             guardStatus: GuardSnapshot(
                 enabled: state == .running,
@@ -198,6 +233,108 @@ final class WorkspaceSession {
         }
 
         return WindowSnapshot(pid: app.processIdentifier, rect: RectSnapshot(rect: rect))
+    }
+
+    private func observeWorkspaceLifecycle(configuration: VirtualDeskConfiguration) {
+        let appURL = URL(fileURLWithPath: configuration.targetAppPath)
+        observers.observeDisplayChange { [weak self] in
+            self?.queue.async {
+                self?.handleDisplayChange()
+            }
+        }
+        observers.observeAppLifecycle(
+            bundleURL: appURL,
+            onTerminate: { [weak self] in
+                self?.queue.async {
+                    self?.handleAppExited()
+                }
+            },
+            onLaunch: { [weak self] in
+                self?.queue.async {
+                    self?.handleAppRelaunched()
+                }
+            }
+        )
+    }
+
+    private func handleDisplayChange() {
+        guard let configuration = activeConfiguration,
+              let display = managedDisplay else {
+            return
+        }
+
+        guard displayService.findDisplay(id: display.id) != nil else {
+            let failed = makeStatus(
+                state: .failed,
+                configuration: configuration,
+                display: display,
+                message: "Virtual display was lost."
+            )
+            try? stateStore.save(failed)
+            emit(event: .displayLost, status: failed, reason: "virtual_display_lost")
+            emit(event: .workspaceFailed, status: failed, reason: "virtual_display_lost")
+            cleanupFailedWorkspace(configuration: configuration)
+            return
+        }
+    }
+
+    private func handleAppExited() {
+        guard let configuration = activeConfiguration else {
+            return
+        }
+
+        let status = makeStatus(
+            state: .running,
+            configuration: configuration,
+            display: managedDisplay,
+            message: "Target app exited."
+        )
+        emit(event: .appExited, status: status, reason: "app_exited")
+    }
+
+    private func handleAppRelaunched() {
+        guard let configuration = activeConfiguration,
+              let guardian,
+              let display = managedDisplay else {
+            return
+        }
+        handleGuardianResult(guardian.enforceOnce(), configuration: configuration, display: display)
+    }
+
+    private func handleGuardianResult(
+        _ result: GuardianEnforcementResult,
+        configuration: VirtualDeskConfiguration,
+        display: ManagedDisplay
+    ) {
+        guard result.recovered else {
+            return
+        }
+
+        let status = makeStatus(
+            state: .running,
+            configuration: configuration,
+            display: display,
+            message: "Window recovered."
+        )
+        emit(event: .windowRecovered, status: status, reason: nil)
+    }
+
+    private func cleanupFailedWorkspace(configuration: VirtualDeskConfiguration) {
+        timer?.cancel()
+        timer = nil
+        observers.removeAll()
+        restoreTargetWindowToPrimaryDisplay(configuration: configuration)
+        guardian = nil
+        managedDisplay = nil
+        virtualDisplay = nil
+        activeConfiguration = nil
+    }
+
+    private func emit(event: WorkspaceEventName, status: AgentStatus, reason: String?) {
+        eventSink?.workspaceSessionDidEmit(
+            event: event,
+            payload: WorkspaceEventPayload(status: status, reason: reason)
+        )
     }
 
     private func restoreTargetWindowToPrimaryDisplay(configuration: VirtualDeskConfiguration) {

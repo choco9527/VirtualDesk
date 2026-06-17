@@ -25,7 +25,7 @@ final class IORouter {
         write(response)
     }
 
-    func sendFailure(id: String, error: String) {
+    func sendFailure(id: String, error: AgentErrorPayload) {
         send(CommandResponse<EmptyParams>.failure(id: id, error: error))
     }
 

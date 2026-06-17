@@ -66,6 +66,11 @@ struct DisplaySnapshot: Codable {
 struct TargetAppSnapshot: Codable {
     let path: String
     let bundleID: String?
+
+    enum CodingKeys: String, CodingKey {
+        case path
+        case bundleID = "bundle_id"
+    }
 }
 
 struct WindowSnapshot: Codable {
@@ -76,6 +81,11 @@ struct WindowSnapshot: Codable {
 struct GuardSnapshot: Codable {
     let enabled: Bool
     let intervalMS: Int
+
+    enum CodingKeys: String, CodingKey {
+        case enabled
+        case intervalMS = "interval_ms"
+    }
 }
 
 struct RectSnapshot: Codable {

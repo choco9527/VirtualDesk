@@ -30,10 +30,14 @@ final class VirtualDeskCLI {
             printStatus()
         case "start":
             startWorkspace()
+        case "stop":
+            stopWorkspace()
         case "create-screen":
             createScreen()
         case "list":
             listDisplays()
+        case "list-apps":
+            listApps()
         case "pin":
             pinOnce()
         case "watch":
@@ -56,6 +60,14 @@ final class VirtualDeskCLI {
         displays.forEach { display in
             let marker = display.matches(configuration.targetDisplayKeywords) ? "*" : " "
             print("\(marker) \(display.id) \(display.name) frame=\(display.frame) visible=\(display.visibleFrame)")
+        }
+    }
+
+    private func listApps() {
+        do {
+            try JSONOutput.print(AppListResult(apps: appService.listRunnableApps()))
+        } catch {
+            fail(error.localizedDescription)
         }
     }
 
@@ -107,14 +119,33 @@ final class VirtualDeskCLI {
     private func startWorkspace() {
         do {
             try ensureAccessibility()
-            let orchestrator = WorkspaceOrchestrator(
+            let agentLock = try AgentLock.acquire()
+            let session = WorkspaceSession(
                 configuration: configuration,
                 virtualDisplayProvisioner: virtualDisplayProvisioner,
                 displayService: displayService,
                 appService: appService,
                 accessibilityService: accessibilityService
             )
-            try orchestrator.start()
+            let signalHandler = TerminationSignalHandler {
+                AgentLog.info("Received termination signal. Cleaning up workspace.")
+                _ = session.stop()
+                Foundation.exit(0)
+            }
+            _ = try session.start(params: nil)
+            withExtendedLifetime(agentLock) {
+                withExtendedLifetime(signalHandler) {
+                    RunLoop.main.run()
+                }
+            }
+        } catch {
+            fail(error.localizedDescription)
+        }
+    }
+
+    private func stopWorkspace() {
+        do {
+            print(try ControlChannelClient.stopWorkspaceRawResponse())
         } catch {
             fail(error.localizedDescription)
         }
@@ -188,12 +219,14 @@ final class VirtualDeskCLI {
         Commands:
           agent          Run persistent NDJSON agent over stdin/stdout
           start          Create a virtual display and keep Codex pinned to it
+          stop           Stop the running workspace through the control socket
           status         Print current agent status as JSON
           create-screen  Create only the VirtualDesk virtual display
-          list   List displays and mark likely BetterDisplay virtual displays
-          pin    Move Codex to the target virtual display once
-          watch  Keep Codex pinned to the target virtual display
-          help   Show this help
+          list           List displays and mark likely BetterDisplay virtual displays
+          list-apps      Print visible GUI apps as JSON
+          pin            Move Codex to the target virtual display once
+          watch          Keep Codex pinned to the target virtual display
+          help           Show this help
         """)
     }
 

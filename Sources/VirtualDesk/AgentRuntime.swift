@@ -4,6 +4,8 @@ import Foundation
 struct AgentRuntime {
     static let lockPath = "/tmp/virtualdesk-agent.lock"
     static let statePath = "/tmp/virtualdesk-agent-state.json"
+    static let socketPath = "/tmp/virtualdesk-agent.sock"
+    static let configPath = "/tmp/virtualdesk-config.json"
 }
 
 final class AgentLock {

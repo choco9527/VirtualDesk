@@ -1,11 +1,16 @@
 import CoreGraphics
 import Foundation
 
+struct GuardianEnforcementResult {
+    let recovered: Bool
+}
+
 final class WindowGuardian {
     private let configuration: VirtualDeskConfiguration
     private let displayService: DisplayServicing
     private let appService: AppServicing
     private let accessibilityService: AccessibilityServicing
+    private var lastRecoveredFrame: CGRect?
 
     init(
         configuration: VirtualDeskConfiguration,
@@ -25,12 +30,13 @@ final class WindowGuardian {
 
     func runUntilStopped(_ shouldStop: () -> Bool) {
         while !shouldStop() {
-            enforceOnce()
+            _ = enforceOnce()
             Thread.sleep(forTimeInterval: configuration.guardianInterval)
         }
     }
 
-    func enforceOnce() {
+    @discardableResult
+    func enforceOnce() -> GuardianEnforcementResult {
         do {
             let display = try targetDisplay()
             let app = try appService.launchOrActivateApp(at: configuration.targetAppPath)
@@ -39,10 +45,16 @@ final class WindowGuardian {
 
             if FramePolicy.shouldMove(windowFrame: windowFrame, targetFrame: display.visibleFrame) {
                 try accessibilityService.move(window: window, to: display.visibleFrame)
-                AgentLog.info("Recovered window to \(display.name).")
+                if lastRecoveredFrame != display.visibleFrame {
+                    AgentLog.info("Recovered window to \(display.name).")
+                    lastRecoveredFrame = display.visibleFrame
+                    return GuardianEnforcementResult(recovered: true)
+                }
             }
+            return GuardianEnforcementResult(recovered: false)
         } catch {
             AgentLog.warning("Waiting: \(error.localizedDescription)")
+            return GuardianEnforcementResult(recovered: false)
         }
     }
 

@@ -4,6 +4,7 @@ import Foundation
 protocol AppServicing {
     func launchOrActivateApp(at path: String) throws -> NSRunningApplication
     func runningApp(at path: String) -> NSRunningApplication?
+    func listRunnableApps() -> [AppSnapshot]
 }
 
 final class MacAppService: AppServicing {
@@ -26,6 +27,25 @@ final class MacAppService: AppServicing {
         return NSWorkspace.shared.runningApplications.first { app in
             app.bundleURL?.standardizedFileURL == targetURL
         }
+    }
+
+    func listRunnableApps() -> [AppSnapshot] {
+        NSWorkspace.shared.runningApplications.compactMap { app in
+            guard !app.isTerminated,
+                  !app.isHidden,
+                  app.activationPolicy == .regular,
+                  let appPath = app.bundleURL?.path else {
+                return nil
+            }
+
+            return AppSnapshot(
+                name: app.localizedName ?? app.bundleIdentifier ?? appPath,
+                bundleID: app.bundleIdentifier,
+                appPath: appPath,
+                pid: app.processIdentifier
+            )
+        }
+        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     private func runLaunch(
