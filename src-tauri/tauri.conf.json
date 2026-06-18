@@ -27,9 +27,24 @@
   "bundle": {
     "active": true,
     "targets": ["dmg"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Productivity",
+    "shortDescription": "Dedicated virtual display workspace for macOS.",
+    "longDescription": "VirtualDesk creates a local virtual display and moves selected application windows into it for remote-work and screen-sharing workflows.",
+    "copyright": "Copyright © 2026 choco9527",
     "externalBin": ["binaries/virtualdesk-agent"],
     "macOS": {
-      "minimumSystemVersion": "13.0"
+      "minimumSystemVersion": "13.0",
+      "bundleName": "VirtualDesk",
+      "signingIdentity": "-",
+      "hardenedRuntime": true,
+      "infoPlist": "Info.plist"
     }
   }
 }
