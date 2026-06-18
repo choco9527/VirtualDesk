@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AppEntry, AgentStatus, captureScreen, getStatus, listApps, startWorkspace, stopWorkspace } from './agent'
+import {
+  AppEntry,
+  AgentStatus,
+  PermissionStatus,
+  captureScreen,
+  getAccessibilityStatus,
+  getScreenCaptureStatus,
+  getStatus,
+  listApps,
+  requestAccessibility,
+  requestScreenCapture,
+  startWorkspace,
+  stopWorkspace,
+} from './agent'
 
 const fallbackApps: AppEntry[] = [
   { name: 'Codex', bundle_id: 'com.openai.codex', app_path: '/Applications/Codex.app', pid: 0 },
@@ -12,7 +25,10 @@ export function App() {
   const [apps, setApps] = useState<AppEntry[]>([])
   const [selectedAppPath, setSelectedAppPath] = useState('/Applications/Codex.app')
   const [status, setStatus] = useState<AgentStatus>({ state: 'stopped' })
+  const [accessibility, setAccessibility] = useState<PermissionStatus | null>(null)
+  const [screenCapture, setScreenCapture] = useState<PermissionStatus | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const running = status.state === 'running' || status.state === 'starting'
@@ -22,8 +38,16 @@ export function App() {
   }, [])
 
   useEffect(() => {
+    const timer = window.setInterval(() => {
+      void refreshStatus()
+    }, 2500)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
     if (!running) {
       setPreviewUrl(null)
+      setPreviewError(null)
       return
     }
 
@@ -33,9 +57,13 @@ export function App() {
         const capture = await captureScreen()
         if (!cancelled) {
           setPreviewUrl(`data:${capture.mime_type};base64,${capture.image_base64}`)
+          setPreviewError(null)
         }
-      } catch {
-        if (!cancelled) setPreviewUrl(null)
+      } catch (nextError) {
+        if (!cancelled) {
+          setPreviewUrl(null)
+          setPreviewError((nextError as Error).message)
+        }
       }
     }
 
@@ -56,12 +84,51 @@ export function App() {
   async function refresh() {
     setError(null)
     try {
-      const [nextStatus, nextApps] = await Promise.all([getStatus(), listApps()])
+      const [nextStatus, nextApps, nextAccessibility, nextScreenCapture] = await Promise.all([
+        getStatus(),
+        listApps(),
+        getAccessibilityStatus(),
+        getScreenCaptureStatus(),
+      ])
       setStatus(nextStatus)
       setApps(nextApps)
+      setAccessibility(nextAccessibility)
+      setScreenCapture(nextScreenCapture)
     } catch (nextError) {
       setError((nextError as Error).message)
       setApps(fallbackApps)
+    }
+  }
+
+  async function refreshStatus() {
+    try {
+      const [nextStatus, nextAccessibility, nextScreenCapture] = await Promise.all([
+        getStatus(),
+        getAccessibilityStatus(),
+        getScreenCaptureStatus(),
+      ])
+      setStatus(nextStatus)
+      setAccessibility(nextAccessibility)
+      setScreenCapture(nextScreenCapture)
+    } catch {
+      // Keep the last visible state; interactive actions surface errors.
+    }
+  }
+
+  async function requestPermission(kind: 'accessibility' | 'screen_capture') {
+    setError(null)
+    try {
+      const result = kind === 'accessibility'
+        ? await requestAccessibility()
+        : await requestScreenCapture()
+      if (kind === 'accessibility') {
+        setAccessibility(result)
+      } else {
+        setScreenCapture(result)
+      }
+      await refreshStatus()
+    } catch (nextError) {
+      setError((nextError as Error).message)
     }
   }
 
@@ -117,6 +184,21 @@ export function App() {
 
       {error && <div className="alert">{error}</div>}
 
+      <section className="permission-row">
+        <PermissionBadge
+          label="辅助功能"
+          message={accessibility?.message ?? '允许 VirtualDesk 移动和守护应用窗口。'}
+          status={accessibility}
+          onRequest={() => requestPermission('accessibility')}
+        />
+        <PermissionBadge
+          label="屏幕录制"
+          message={screenCapture?.message ?? '允许 VirtualDesk 在右侧显示虚拟屏幕当前内容。'}
+          status={screenCapture}
+          onRequest={() => requestPermission('screen_capture')}
+        />
+      </section>
+
       <section className="workspace">
         <aside className="app-panel">
           <div className="panel-heading">
@@ -168,7 +250,7 @@ export function App() {
                   <div className="screen-grid" />
                   <div className="preview-card">
                     <strong>虚拟屏幕已开启</strong>
-                    <span>正在等待屏幕截图权限或实时画面。</span>
+                    <span>{previewError ?? '正在等待屏幕截图权限或实时画面。'}</span>
                   </div>
                 </>
               ) : (
@@ -182,5 +264,26 @@ export function App() {
         </section>
       </section>
     </main>
+  )
+}
+
+interface PermissionBadgeProps {
+  label: string
+  message: string
+  status: PermissionStatus | null
+  onRequest: () => void
+}
+
+function PermissionBadge({ label, message, status, onRequest }: PermissionBadgeProps) {
+  const trusted = status?.trusted === true
+
+  return (
+    <div className={trusted ? 'permission-card permission-ok' : 'permission-card permission-needed'}>
+      <div>
+        <strong>{label}</strong>
+        <span>{trusted ? '已授权' : message}</span>
+      </div>
+      {!trusted && <button onClick={onRequest}>授权</button>}
+    </div>
   )
 }

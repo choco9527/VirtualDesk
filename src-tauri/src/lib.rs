@@ -10,6 +10,38 @@ async fn agent_status(app: tauri::AppHandle) -> Result<serde_json::Value, String
 }
 
 #[tauri::command]
+async fn accessibility_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let manager = app.state::<AgentManager>();
+    manager
+        .request("accessibility_status", serde_json::json!({}))
+        .await
+}
+
+#[tauri::command]
+async fn request_accessibility(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let manager = app.state::<AgentManager>();
+    manager
+        .request("request_accessibility", serde_json::json!({}))
+        .await
+}
+
+#[tauri::command]
+async fn screen_capture_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let manager = app.state::<AgentManager>();
+    manager
+        .request("screen_capture_status", serde_json::json!({}))
+        .await
+}
+
+#[tauri::command]
+async fn request_screen_capture(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let manager = app.state::<AgentManager>();
+    manager
+        .request("request_screen_capture", serde_json::json!({}))
+        .await
+}
+
+#[tauri::command]
 async fn list_apps(app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, String> {
     let manager = app.state::<AgentManager>();
     let response = manager.request("list_apps", serde_json::json!({})).await?;
@@ -63,6 +95,10 @@ pub fn run() {
         .manage(AgentManager::default())
         .invoke_handler(tauri::generate_handler![
             agent_status,
+            accessibility_status,
+            request_accessibility,
+            screen_capture_status,
+            request_screen_capture,
             list_apps,
             start_workspace,
             stop_workspace,

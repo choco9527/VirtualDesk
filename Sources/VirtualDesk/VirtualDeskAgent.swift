@@ -62,6 +62,10 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
                 sendAccessibilityStatus(id: request.id, prompt: false)
             case .requestAccessibility:
                 sendAccessibilityStatus(id: request.id, prompt: true)
+            case .screenCaptureStatus:
+                sendScreenCaptureStatus(id: request.id, prompt: false)
+            case .requestScreenCapture:
+                sendScreenCaptureStatus(id: request.id, prompt: true)
             case .listDisplays:
                 sendDisplayList(id: request.id)
             case .listApps:
@@ -123,6 +127,17 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
             trusted: trusted,
             promptShown: prompt && !trusted,
             message: trusted ? nil : "Enable VirtualDesk in System Settings > Privacy & Security > Accessibility."
+        )
+
+        router.send(CommandResponse.success(id: id, result: result))
+    }
+
+    private func sendScreenCaptureStatus(id: String, prompt: Bool) {
+        let trusted = prompt ? ScreenCaptureService.requestAccess() : ScreenCaptureService.isAuthorized()
+        let result = AccessibilityResult(
+            trusted: trusted,
+            promptShown: prompt && !trusted,
+            message: trusted ? nil : "Enable VirtualDesk in System Settings > Privacy & Security > Screen & System Audio Recording."
         )
 
         router.send(CommandResponse.success(id: id, result: result))

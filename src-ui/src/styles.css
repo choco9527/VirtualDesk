@@ -98,6 +98,57 @@ h2 {
   padding: 12px 14px;
 }
 
+.permission-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.permission-card {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(23, 32, 51, 0.08);
+  border-radius: 18px;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+
+.permission-card strong,
+.permission-card span {
+  display: block;
+}
+
+.permission-card span {
+  color: #667085;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.permission-card button {
+  background: #155eef;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  flex: 0 0 auto;
+  padding: 8px 14px;
+}
+
+.permission-ok {
+  border-color: rgba(18, 183, 106, 0.3);
+}
+
+.permission-ok strong {
+  color: #027a48;
+}
+
+.permission-needed {
+  border-color: rgba(247, 144, 9, 0.32);
+}
+
 .workspace {
   display: grid;
   gap: 24px;

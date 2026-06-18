@@ -16,6 +16,8 @@ enum AgentMethod: String, Codable {
     case status
     case accessibilityStatus = "accessibility_status"
     case requestAccessibility = "request_accessibility"
+    case screenCaptureStatus = "screen_capture_status"
+    case requestScreenCapture = "request_screen_capture"
     case listDisplays = "list_displays"
     case listApps = "list_apps"
     case captureScreen = "capture_screen"

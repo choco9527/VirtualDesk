@@ -18,8 +18,30 @@ export interface ScreenCapture {
   image_base64: string
 }
 
+export interface PermissionStatus {
+  trusted: boolean
+  prompt_shown: boolean
+  message?: string
+}
+
 export async function getStatus(): Promise<AgentStatus> {
   return invoke<AgentStatus>('agent_status')
+}
+
+export async function getAccessibilityStatus(): Promise<PermissionStatus> {
+  return invoke<PermissionStatus>('accessibility_status')
+}
+
+export async function requestAccessibility(): Promise<PermissionStatus> {
+  return invoke<PermissionStatus>('request_accessibility')
+}
+
+export async function getScreenCaptureStatus(): Promise<PermissionStatus> {
+  return invoke<PermissionStatus>('screen_capture_status')
+}
+
+export async function requestScreenCapture(): Promise<PermissionStatus> {
+  return invoke<PermissionStatus>('request_screen_capture')
 }
 
 export async function listApps(): Promise<AppEntry[]> {

@@ -58,11 +58,13 @@ Supported requests:
 {"id":"1","method":"status","params":{}}
 {"id":"2","method":"accessibility_status","params":{}}
 {"id":"3","method":"request_accessibility","params":{}}
-{"id":"4","method":"list_displays","params":{}}
-{"id":"5","method":"list_apps","params":{}}
-{"id":"6","method":"capture_screen","params":{}}
-{"id":"7","method":"start_workspace","params":{"app_path":"/Applications/Codex.app","width":1440,"height":900,"refresh_rate":60,"hidpi":true,"profile":"codex_mobile_1440x900"}}
-{"id":"8","method":"stop_workspace","params":{}}
+{"id":"4","method":"screen_capture_status","params":{}}
+{"id":"5","method":"request_screen_capture","params":{}}
+{"id":"6","method":"list_displays","params":{}}
+{"id":"7","method":"list_apps","params":{}}
+{"id":"8","method":"capture_screen","params":{}}
+{"id":"9","method":"start_workspace","params":{"app_path":"/Applications/Codex.app","width":1440,"height":900,"refresh_rate":60,"hidpi":true,"profile":"codex_mobile_1440x900"}}
+{"id":"10","method":"stop_workspace","params":{}}
 ```
 
 Responses and events are single-line JSON:

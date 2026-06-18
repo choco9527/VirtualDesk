@@ -3,7 +3,19 @@ import CoreGraphics
 import Foundation
 
 enum ScreenCaptureService {
+    static func isAuthorized() -> Bool {
+        CGPreflightScreenCaptureAccess()
+    }
+
+    static func requestAccess() -> Bool {
+        CGRequestScreenCaptureAccess()
+    }
+
     static func capture(displayID: CGDirectDisplayID) throws -> ScreenCaptureResult {
+        guard isAuthorized() else {
+            throw VirtualDeskError.screenCapturePermissionMissing
+        }
+
         guard let image = CGDisplayCreateImage(displayID) else {
             throw VirtualDeskError.screenCaptureUnavailable(
                 "CGDisplayCreateImage returned nil. Screen Recording permission may be required."

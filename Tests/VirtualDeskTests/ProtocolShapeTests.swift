@@ -24,7 +24,8 @@ final class ProtocolShapeTests: XCTestCase {
                 virtualDisplay: true,
                 windowControl: true,
                 stopWorkspace: true,
-                listApps: true
+                listApps: true,
+                captureScreen: true
             )
         )
 
@@ -34,5 +35,19 @@ final class ProtocolShapeTests: XCTestCase {
         XCTAssertTrue(result.supports.windowControl)
         XCTAssertTrue(result.supports.stopWorkspace)
         XCTAssertTrue(result.supports.listApps)
+        XCTAssertTrue(result.supports.captureScreen)
+    }
+
+    func testAccessibilityResultUsesSnakeCaseKeys() throws {
+        let result = AccessibilityResult(
+            trusted: false,
+            promptShown: true,
+            message: "permission required"
+        )
+
+        let data = try JSONEncoder.virtualDeskLine.encode(result)
+        let output = try XCTUnwrap(String(data: data, encoding: .utf8))
+
+        XCTAssertTrue(output.contains("\"prompt_shown\":true"))
     }
 }
