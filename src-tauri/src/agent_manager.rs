@@ -31,7 +31,11 @@ impl AgentManager {
             return Ok(());
         }
 
-        let (mut rx, child) = app.shell().sidecar("virtualdesk-agent")?.spawn()?;
+        let (mut rx, child) = app
+            .shell()
+            .sidecar("virtualdesk-agent")?
+            .args(["agent"])
+            .spawn()?;
         let pending = Arc::clone(&self.pending);
         let stdout_buffer = Arc::clone(&self.stdout_buffer);
         let child_ref = Arc::clone(&self.child);
