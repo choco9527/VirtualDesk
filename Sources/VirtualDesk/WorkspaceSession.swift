@@ -17,6 +17,7 @@ final class WorkspaceSession {
     private var guardian: WindowGuardian?
     private var timer: DispatchSourceTimer?
     private var observers = WorkspaceObservers()
+    private var pinnedAppPaths: [String] = []
     weak var eventSink: WorkspaceSessionEventSink?
 
     init(
@@ -43,8 +44,8 @@ final class WorkspaceSession {
 
     func start(params: StartWorkspaceParams?) throws -> AgentStatus {
         try queue.sync {
-            guard virtualDisplay == nil else {
-                throw VirtualDeskError.workspaceAlreadyRunning
+            if virtualDisplay != nil {
+                return try retargetWorkspace(params: params)
             }
 
             let configuration = try VirtualDeskConfiguration.resolved(
@@ -61,10 +62,9 @@ final class WorkspaceSession {
 
             let createdDisplay = try virtualDisplayProvisioner.createDisplay(spec: displaySpec(configuration: configuration))
             let display = try waitForDisplay(id: createdDisplay.displayID)
-            let fixedDisplayService = FixedDisplayService(displayService: displayService, displayID: display.id)
             let createdGuardian = WindowGuardian(
                 configuration: configuration,
-                displayService: fixedDisplayService,
+                displayService: fixedDisplayService(displayID: display.id),
                 appService: appService,
                 accessibilityService: accessibilityService
             )
@@ -73,16 +73,8 @@ final class WorkspaceSession {
             virtualDisplay = createdDisplay
             managedDisplay = display
             guardian = createdGuardian
-            try configurationStore.save(
-                VirtualDeskUserConfig(
-                    appPath: configuration.targetAppPath,
-                    width: configuration.virtualDisplayWidth,
-                    height: configuration.virtualDisplayHeight,
-                    refreshRate: configuration.virtualDisplayRefreshRate,
-                    hiDPI: configuration.virtualDisplayHiDPI,
-                    profile: params?.profile ?? VirtualDeskConfiguration.defaultProfileName
-                )
-            )
+            pinnedAppPaths = [configuration.targetAppPath]
+            try saveUserConfiguration(configuration: configuration, profile: params?.profile)
             observeWorkspaceLifecycle(configuration: configuration)
             handleGuardianResult(createdGuardian.enforceOnce(), configuration: configuration, display: display)
             startTimer(configuration: configuration, guardian: createdGuardian)
@@ -120,11 +112,12 @@ final class WorkspaceSession {
             timer?.cancel()
             timer = nil
             observers.removeAll()
-            restoreTargetWindowToPrimaryDisplay(configuration: configuration)
+            restorePinnedWindowsToPrimaryDisplay(fallbackConfiguration: configuration)
             guardian = nil
             managedDisplay = nil
             virtualDisplay = nil
             activeConfiguration = nil
+            pinnedAppPaths = []
             stateStore.clear()
             AgentLog.info("Stopped workspace.")
 
@@ -191,6 +184,45 @@ final class WorkspaceSession {
         createdTimer.resume()
     }
 
+    private func retargetWorkspace(params: StartWorkspaceParams?) throws -> AgentStatus {
+        guard let configuration = activeConfiguration,
+              let display = managedDisplay else {
+            throw VirtualDeskError.workspaceNotRunning
+        }
+
+        let nextConfiguration = configuration.overriding(params)
+        try nextConfiguration.validate()
+
+        timer?.cancel()
+        timer = nil
+        observers.removeAll()
+
+        let nextGuardian = WindowGuardian(
+            configuration: nextConfiguration,
+            displayService: fixedDisplayService(displayID: display.id),
+            appService: appService,
+            accessibilityService: accessibilityService
+        )
+
+        activeConfiguration = nextConfiguration
+        guardian = nextGuardian
+        rememberPinnedApp(path: nextConfiguration.targetAppPath)
+        try saveUserConfiguration(configuration: nextConfiguration, profile: params?.profile)
+        observeWorkspaceLifecycle(configuration: nextConfiguration)
+        handleGuardianResult(nextGuardian.enforceOnce(), configuration: nextConfiguration, display: display)
+        startTimer(configuration: nextConfiguration, guardian: nextGuardian)
+
+        let status = makeStatus(
+            state: .running,
+            configuration: nextConfiguration,
+            display: display,
+            message: "Target app moved to workspace."
+        )
+        try stateStore.save(status)
+        AgentLog.info("Retargeted workspace to \(nextConfiguration.targetAppPath).")
+        return status
+    }
+
     private func displaySpec(configuration: VirtualDeskConfiguration) -> VirtualDisplaySpec {
         VirtualDisplaySpec(
             name: configuration.virtualDisplayName,
@@ -198,6 +230,31 @@ final class WorkspaceSession {
             height: configuration.virtualDisplayHeight,
             refreshRate: configuration.virtualDisplayRefreshRate
         )
+    }
+
+    private func fixedDisplayService(displayID: CGDirectDisplayID) -> DisplayServicing {
+        FixedDisplayService(displayService: displayService, displayID: displayID)
+    }
+
+    private func saveUserConfiguration(configuration: VirtualDeskConfiguration, profile: String?) throws {
+        try configurationStore.save(
+            VirtualDeskUserConfig(
+                appPath: configuration.targetAppPath,
+                width: configuration.virtualDisplayWidth,
+                height: configuration.virtualDisplayHeight,
+                refreshRate: configuration.virtualDisplayRefreshRate,
+                hiDPI: configuration.virtualDisplayHiDPI,
+                profile: profile ?? VirtualDeskConfiguration.defaultProfileName
+            )
+        )
+    }
+
+    private func rememberPinnedApp(path: String) {
+        guard !pinnedAppPaths.contains(path) else {
+            return
+        }
+
+        pinnedAppPaths.append(path)
     }
 
     private func waitForDisplay(id: CGDirectDisplayID) throws -> ManagedDisplay {
@@ -333,11 +390,12 @@ final class WorkspaceSession {
         timer?.cancel()
         timer = nil
         observers.removeAll()
-        restoreTargetWindowToPrimaryDisplay(configuration: configuration)
+        restorePinnedWindowsToPrimaryDisplay(fallbackConfiguration: configuration)
         guardian = nil
         managedDisplay = nil
         virtualDisplay = nil
         activeConfiguration = nil
+        pinnedAppPaths = []
     }
 
     private func emit(event: WorkspaceEventName, status: AgentStatus, reason: String?) {
@@ -347,9 +405,16 @@ final class WorkspaceSession {
         )
     }
 
-    private func restoreTargetWindowToPrimaryDisplay(configuration: VirtualDeskConfiguration) {
+    private func restorePinnedWindowsToPrimaryDisplay(fallbackConfiguration: VirtualDeskConfiguration) {
+        let paths = pinnedAppPaths.isEmpty ? [fallbackConfiguration.targetAppPath] : pinnedAppPaths
+        paths.forEach { appPath in
+            restoreWindowToPrimaryDisplay(appPath: appPath)
+        }
+    }
+
+    private func restoreWindowToPrimaryDisplay(appPath: String) {
         guard let primaryDisplay = displayService.primaryDisplay(),
-              let app = appService.runningApp(at: configuration.targetAppPath),
+              let app = appService.runningApp(at: appPath),
               let window = try? accessibilityService.primaryWindow(for: app) else {
             AgentLog.warning("Skip window restore: primary display, target app, or target window unavailable.")
             return

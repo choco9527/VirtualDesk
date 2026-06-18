@@ -33,6 +33,7 @@ The repository now includes a Tauri + React shell that moves toward the final pr
 - Left panel: running app list in a two-column layout.
 - Top switch: starts or stops the virtual workspace through the agent sidecar.
 - Right panel: phone-sized virtual screen frame.
+- Dragging an app into the phone frame calls `start_workspace`; if the workspace is already running, the agent retargets the existing virtual display to that app instead of creating another display.
 - Current preview: polls `capture_screen` and renders PNG snapshots from the virtual display. ScreenCaptureKit is still the future path for smoother preview.
 
 ```bash
