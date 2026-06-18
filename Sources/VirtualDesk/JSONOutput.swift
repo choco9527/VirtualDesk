@@ -22,6 +22,10 @@ extension JSONDecoder {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return decoder
     }
+
+    static var virtualDeskProtocol: JSONDecoder {
+        JSONDecoder()
+    }
 }
 
 enum JSONOutput {

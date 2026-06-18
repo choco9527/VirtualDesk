@@ -58,7 +58,7 @@ struct VirtualDeskConfiguration {
         )
     ]
     static let allowedRefreshRates: Set<Double> = [30, 60, 120]
-    static let minWidth: UInt32 = 640
+    static let minWidth: UInt32 = 320
     static let maxWidth: UInt32 = 7680
     static let minHeight: UInt32 = 480
     static let maxHeight: UInt32 = 4320
@@ -77,7 +77,8 @@ struct VirtualDeskConfiguration {
     static func resolved(
         base: VirtualDeskConfiguration = .pocDefault,
         config: VirtualDeskUserConfig?,
-        params: StartWorkspaceParams?
+        params: StartWorkspaceParams?,
+        validateTargetApp: Bool = true
     ) throws -> VirtualDeskConfiguration {
         let profileName = params?.profile ?? config?.profile ?? defaultProfileName
         guard let profile = defaultProfiles[profileName] else {
@@ -101,11 +102,20 @@ struct VirtualDeskConfiguration {
             guardianInterval: base.guardianInterval
         )
 
-        try resolved.validate()
+        if validateTargetApp {
+            try resolved.validate()
+        } else {
+            try resolved.validateDisplay()
+        }
         return resolved
     }
 
     func validate(fileManager: FileManager = .default) throws {
+        try validateTargetApp(fileManager: fileManager)
+        try validateDisplay()
+    }
+
+    func validateTargetApp(fileManager: FileManager = .default) throws {
         let standardizedPath = URL(fileURLWithPath: targetAppPath).standardizedFileURL.path
         var isDirectory: ObjCBool = false
         guard fileManager.fileExists(atPath: standardizedPath, isDirectory: &isDirectory),
@@ -113,7 +123,9 @@ struct VirtualDeskConfiguration {
               standardizedPath.lowercased().hasSuffix(".app") else {
             throw VirtualDeskError.appNotFound(targetAppPath)
         }
+    }
 
+    func validateDisplay() throws {
         guard Self.minWidth...Self.maxWidth ~= virtualDisplayWidth else {
             throw VirtualDeskError.invalidParams(
                 "width must be between \(Self.minWidth) and \(Self.maxWidth)."

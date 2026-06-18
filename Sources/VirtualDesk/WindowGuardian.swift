@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 
@@ -6,11 +7,14 @@ struct GuardianEnforcementResult {
 }
 
 final class WindowGuardian {
+    private static let maxLaunchAttempts = 3
+
     private let configuration: VirtualDeskConfiguration
     private let displayService: DisplayServicing
     private let appService: AppServicing
     private let accessibilityService: AccessibilityServicing
     private var lastRecoveredFrame: CGRect?
+    private var launchAttempts = 0
 
     init(
         configuration: VirtualDeskConfiguration,
@@ -39,7 +43,7 @@ final class WindowGuardian {
     func enforceOnce() -> GuardianEnforcementResult {
         do {
             let display = try targetDisplay()
-            let app = try appService.launchOrActivateApp(at: configuration.targetAppPath)
+            let app = try targetApp()
             let window = try accessibilityService.primaryWindow(for: app)
             let windowFrame = try accessibilityService.frame(of: window)
 
@@ -58,11 +62,40 @@ final class WindowGuardian {
         }
     }
 
+    @discardableResult
+    func enforceWithRetry(attempts: Int = 5, delay: TimeInterval = 0.25) -> GuardianEnforcementResult {
+        var latest = GuardianEnforcementResult(recovered: false)
+        for attempt in 0..<attempts {
+            latest = enforceOnce()
+            if latest.recovered || attempt == attempts - 1 {
+                return latest
+            }
+            Thread.sleep(forTimeInterval: delay)
+        }
+        return latest
+    }
+
     private func targetDisplay() throws -> ManagedDisplay {
         guard let display = displayService.findDisplay(matching: configuration.targetDisplayKeywords) else {
             throw VirtualDeskError.targetDisplayNotFound(configuration.targetDisplayKeywords)
         }
 
         return display
+    }
+
+    private func targetApp() throws -> NSRunningApplication {
+        if let app = appService.runningApp(at: configuration.targetAppPath) {
+            launchAttempts = 0
+            return app
+        }
+
+        guard launchAttempts < Self.maxLaunchAttempts else {
+            throw VirtualDeskError.appNotRunning(
+                "Launch limit reached for \(configuration.targetAppPath)."
+            )
+        }
+
+        launchAttempts += 1
+        return try appService.launchOrActivateApp(at: configuration.targetAppPath)
     }
 }

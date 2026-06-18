@@ -30,11 +30,13 @@ swift run VirtualDesk watch
 
 The repository now includes a Tauri + React shell that moves toward the final product UI:
 
-- Left panel: running app list in a two-column layout.
-- Top switch: starts or stops the virtual workspace through the agent sidecar.
+- Left panel: installed app list in a two-column layout with app icon + name, plus a running badge when applicable.
+- Top switch: starts or stops the virtual display through the agent sidecar.
 - Right panel: phone-sized virtual screen frame.
-- Dragging an app into the phone frame calls `start_workspace`; if the workspace is already running, the agent retargets the existing virtual display to that app instead of creating another display.
+- The switch only calls `start_display`; it does not move any app by default.
+- Dragging an app into the phone frame calls `start_workspace`; users must enable the virtual display first, then drag an app into it.
 - Current preview: polls `capture_screen` and renders PNG snapshots from the virtual display. ScreenCaptureKit is still the future path for smoother preview.
+- Windows is not implemented in this phase; current work remains macOS-only, with future Windows support reserved at the architecture level.
 
 ```bash
 npm install --prefix src-ui
@@ -43,6 +45,12 @@ npm run build:agent
 npm --prefix src-ui run build
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
+
+### Build Requirements
+
+- No full Xcode install is required.
+- macOS Command Line Tools must be healthy enough for SwiftPM to build the package.
+- `xcrun --sdk macosx --show-sdk-platform-path` may warn on Command Line Tools-only installs; the build script reports this as a warning and continues. Xcode is not required.
 
 ## Agent Mode
 
@@ -64,14 +72,15 @@ Supported requests:
 {"id":"6","method":"list_displays","params":{}}
 {"id":"7","method":"list_apps","params":{}}
 {"id":"8","method":"capture_screen","params":{}}
-{"id":"9","method":"start_workspace","params":{"app_path":"/Applications/Codex.app","width":1440,"height":900,"refresh_rate":60,"hidpi":true,"profile":"codex_mobile_1440x900"}}
-{"id":"10","method":"stop_workspace","params":{}}
+{"id":"9","method":"start_display","params":{"width":1440,"height":900,"refresh_rate":60,"hidpi":true,"profile":"codex_mobile_1440x900"}}
+{"id":"10","method":"start_workspace","params":{"app_path":"/Applications/Codex.app","width":1440,"height":900,"refresh_rate":60,"hidpi":true,"profile":"codex_mobile_1440x900"}}
+{"id":"11","method":"stop_workspace","params":{}}
 ```
 
 Responses and events are single-line JSON:
 
 ```json
-{"id":"0","ok":true,"result":{"platform":"macos","protocol_version":"1.0","supports":{"virtual_display":true,"window_control":true,"stop_workspace":true,"list_apps":true,"capture_screen":true}}}
+{"id":"0","ok":true,"result":{"platform":"macos","protocol_version":"1.0","supports":{"virtual_display":true,"window_control":true,"stop_workspace":true,"list_apps":true,"capture_screen":true,"start_display":true}}}
 {"id":"1","ok":false,"error":{"code":"INVALID_PARAMS","message":"Invalid params: refresh_rate must be one of: 30, 60, 120."}}
 {"event":"workspace_stopped","data":{"status":{"state":"stopped"},"reason":null}}
 ```

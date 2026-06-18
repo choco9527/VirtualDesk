@@ -25,7 +25,8 @@ final class ProtocolShapeTests: XCTestCase {
                 windowControl: true,
                 stopWorkspace: true,
                 listApps: true,
-                captureScreen: true
+                captureScreen: true,
+                startDisplay: true
             )
         )
 
@@ -36,6 +37,7 @@ final class ProtocolShapeTests: XCTestCase {
         XCTAssertTrue(result.supports.stopWorkspace)
         XCTAssertTrue(result.supports.listApps)
         XCTAssertTrue(result.supports.captureScreen)
+        XCTAssertTrue(result.supports.startDisplay)
     }
 
     func testAccessibilityResultUsesSnakeCaseKeys() throws {
@@ -49,5 +51,37 @@ final class ProtocolShapeTests: XCTestCase {
         let output = try XCTUnwrap(String(data: data, encoding: .utf8))
 
         XCTAssertTrue(output.contains("\"prompt_shown\":true"))
+    }
+
+    func testAppSnapshotIncludesIconKey() throws {
+        let snapshot = AppSnapshot(
+            name: "Codex",
+            bundleID: "com.openai.codex",
+            appPath: "/Applications/Codex.app",
+            pid: 1,
+            isRunning: true,
+            iconPNGBase64: "abc"
+        )
+
+        let data = try JSONEncoder.virtualDeskLine.encode(snapshot)
+        let output = try XCTUnwrap(String(data: data, encoding: .utf8))
+
+        XCTAssertTrue(output.contains("\"icon_png_base64\":\"abc\""))
+        XCTAssertTrue(output.contains("\"is_running\":true"))
+    }
+
+    func testStartWorkspaceParamsDecodeSnakeCaseRequest() throws {
+        let data = Data("""
+        {"id":"1","method":"start_workspace","params":{"app_path":"/System/Applications/Calculator.app","refresh_rate":60,"hidpi":true}}
+        """.utf8)
+
+        let request = try JSONDecoder.virtualDeskProtocol.decode(
+            CommandRequest<StartWorkspaceParams>.self,
+            from: data
+        )
+
+        XCTAssertEqual(request.params?.appPath, "/System/Applications/Calculator.app")
+        XCTAssertEqual(request.params?.refreshRate, 60)
+        XCTAssertEqual(request.params?.hiDPI, true)
     }
 }

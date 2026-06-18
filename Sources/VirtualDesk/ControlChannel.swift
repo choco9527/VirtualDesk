@@ -45,7 +45,8 @@ final class ControlChannelServer {
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(listenSocket, $0, addressLength) }
         }
         guard bindResult == 0, listen(listenSocket, 8) == 0 else {
-            throw VirtualDeskError.internalError("Failed to bind control socket at \(path).")
+            let reason = String(cString: strerror(errno))
+            throw VirtualDeskError.internalError("Failed to bind control socket at \(path): \(reason).")
         }
 
         let readSource = DispatchSource.makeReadSource(fileDescriptor: listenSocket, queue: queue)
@@ -86,7 +87,7 @@ final class ControlChannelServer {
         guard count > 0 else { return }
 
         let data = Data(buffer.prefix(count))
-        guard let request = try? JSONDecoder.virtualDesk.decode(BasicCommandRequest.self, from: data) else {
+        guard let request = try? JSONDecoder.virtualDeskProtocol.decode(BasicCommandRequest.self, from: data) else {
             return
         }
 

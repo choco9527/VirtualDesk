@@ -9,7 +9,11 @@ struct VirtualDisplaySpec {
     let refreshRate: Double
 }
 
-final class VirtualDisplayHandle {
+protocol VirtualDisplayLeasing: AnyObject {
+    var displayID: CGDirectDisplayID { get }
+}
+
+final class VirtualDisplayHandle: VirtualDisplayLeasing {
     let displayID: CGDirectDisplayID
     private let rawDisplay: DBVirtualDisplayRef
 
@@ -24,11 +28,11 @@ final class VirtualDisplayHandle {
 }
 
 protocol VirtualDisplayProvisioning {
-    func createDisplay(spec: VirtualDisplaySpec) throws -> VirtualDisplayHandle
+    func createDisplay(spec: VirtualDisplaySpec) throws -> VirtualDisplayLeasing
 }
 
 final class CGVirtualDisplayProvisioner: VirtualDisplayProvisioning {
-    func createDisplay(spec: VirtualDisplaySpec) throws -> VirtualDisplayHandle {
+    func createDisplay(spec: VirtualDisplaySpec) throws -> VirtualDisplayLeasing {
         var errorBuffer = [CChar](repeating: 0, count: 512)
         let rawDisplay = spec.name.withCString { name in
             DBVirtualDisplayCreate(

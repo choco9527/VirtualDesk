@@ -153,16 +153,32 @@ final class VirtualDeskCLI {
 
     private func createScreen() {
         do {
-            let display = try virtualDisplayProvisioner.createDisplay(spec: VirtualDisplaySpec(
-                name: configuration.virtualDisplayName,
-                width: configuration.virtualDisplayWidth,
-                height: configuration.virtualDisplayHeight,
-                refreshRate: configuration.virtualDisplayRefreshRate
-            ))
+            let agentLock = try AgentLock.acquire()
+            let session = WorkspaceSession(
+                configuration: configuration,
+                virtualDisplayProvisioner: virtualDisplayProvisioner,
+                displayService: displayService,
+                appService: appService,
+                accessibilityService: accessibilityService
+            )
+            let controlChannel = ControlChannelServer(session: session)
+            try controlChannel.start()
+            let signalHandler = TerminationSignalHandler {
+                AgentLog.info("Received termination signal. Cleaning up virtual display.")
+                _ = session.stop()
+                Foundation.exit(0)
+            }
 
-            print("Created virtual display id=\(display.displayID). Press Ctrl-C to keep it alive.")
-            withExtendedLifetime(display) {
-                RunLoop.current.run()
+            let status = try session.startDisplay(params: nil)
+            let displayID = status.display?.id ?? 0
+            print("Created virtual display id=\(displayID). Press Ctrl-C to keep it alive.")
+
+            withExtendedLifetime(agentLock) {
+                withExtendedLifetime(controlChannel) {
+                    withExtendedLifetime(signalHandler) {
+                        RunLoop.current.run()
+                    }
+                }
             }
         } catch {
             fail(error.localizedDescription)

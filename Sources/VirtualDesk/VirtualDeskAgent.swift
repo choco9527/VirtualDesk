@@ -51,7 +51,7 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
 
     private func handle(data: Data) {
         do {
-            let request = try JSONDecoder.virtualDesk.decode(BasicCommandRequest.self, from: data)
+            let request = try JSONDecoder.virtualDeskProtocol.decode(BasicCommandRequest.self, from: data)
 
             switch request.method {
             case .capabilities:
@@ -72,6 +72,8 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
                 sendAppList(id: request.id)
             case .captureScreen:
                 sendScreenCapture(id: request.id)
+            case .startDisplay:
+                try startDisplay(data: data)
             case .startWorkspace:
                 try startWorkspace(data: data)
             case .stopWorkspace:
@@ -93,7 +95,8 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
                 windowControl: true,
                 stopWorkspace: true,
                 listApps: true,
-                captureScreen: true
+                captureScreen: true,
+                startDisplay: true
             )
         )
         router.send(CommandResponse.success(id: id, result: result))
@@ -137,14 +140,14 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
         let result = AccessibilityResult(
             trusted: trusted,
             promptShown: prompt && !trusted,
-            message: trusted ? nil : "Enable VirtualDesk in System Settings > Privacy & Security > Screen & System Audio Recording."
+            message: trusted ? nil : "Enable virtualdesk-agent or the VirtualDesk debug binary in System Settings > Privacy & Security > Screen & System Audio Recording."
         )
 
         router.send(CommandResponse.success(id: id, result: result))
     }
 
     private func startWorkspace(data: Data) throws {
-        let request = try JSONDecoder.virtualDesk.decode(
+        let request = try JSONDecoder.virtualDeskProtocol.decode(
             CommandRequest<StartWorkspaceParams>.self,
             from: data
         )
@@ -159,6 +162,22 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
 
         do {
             let status = try session.start(params: request.params)
+            router.send(CommandResponse.success(id: request.id, result: status))
+        } catch {
+            let payload = (error as? VirtualDeskError)?.payload
+                ?? VirtualDeskError.internalError(error.localizedDescription).payload
+            router.sendFailure(id: request.id, error: payload)
+        }
+    }
+
+    private func startDisplay(data: Data) throws {
+        let request = try JSONDecoder.virtualDeskProtocol.decode(
+            CommandRequest<StartWorkspaceParams>.self,
+            from: data
+        )
+
+        do {
+            let status = try session.startDisplay(params: request.params)
             router.send(CommandResponse.success(id: request.id, result: status))
         } catch {
             let payload = (error as? VirtualDeskError)?.payload

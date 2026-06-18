@@ -21,6 +21,7 @@ enum AgentMethod: String, Codable {
     case listDisplays = "list_displays"
     case listApps = "list_apps"
     case captureScreen = "capture_screen"
+    case startDisplay = "start_display"
     case startWorkspace = "start_workspace"
     case stopWorkspace = "stop_workspace"
 }
@@ -82,6 +83,7 @@ struct AgentSupportFlags: Codable {
     let stopWorkspace: Bool
     let listApps: Bool
     let captureScreen: Bool
+    let startDisplay: Bool
 
     enum CodingKeys: String, CodingKey {
         case virtualDisplay = "virtual_display"
@@ -89,6 +91,7 @@ struct AgentSupportFlags: Codable {
         case stopWorkspace = "stop_workspace"
         case listApps = "list_apps"
         case captureScreen = "capture_screen"
+        case startDisplay = "start_display"
     }
 }
 
@@ -121,12 +124,16 @@ struct AppSnapshot: Codable, Equatable {
     let bundleID: String?
     let appPath: String
     let pid: Int32
+    let isRunning: Bool
+    let iconPNGBase64: String?
 
     enum CodingKeys: String, CodingKey {
         case name
         case bundleID = "bundle_id"
         case appPath = "app_path"
         case pid
+        case isRunning = "is_running"
+        case iconPNGBase64 = "icon_png_base64"
     }
 }
 

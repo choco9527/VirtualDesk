@@ -1,7 +1,6 @@
 #ifndef CGVirtualDisplayBridge_h
 #define CGVirtualDisplayBridge_h
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 

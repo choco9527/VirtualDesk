@@ -1,9 +1,13 @@
 {
   "name": "virtualdesk",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "build:agent": "bash scripts/build-agent.sh",
+    "smoke:agent": "node scripts/smoke-agent.js",
+    "smoke:workspace": "node scripts/smoke-agent.js --workspace",
+    "smoke:all": "npm run smoke:agent && npm run smoke:workspace",
     "dev:ui": "npm --prefix src-ui run dev",
     "build:ui": "npm --prefix src-ui run build",
     "tauri:dev": "npm run build:agent && npm --prefix src-ui run build && npm --prefix src-tauri run tauri dev",

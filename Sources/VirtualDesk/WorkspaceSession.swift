@@ -12,7 +12,7 @@ final class WorkspaceSession {
     private let queue = DispatchQueue(label: "com.virtualdesk.workspace.session")
 
     private var activeConfiguration: VirtualDeskConfiguration?
-    private var virtualDisplay: VirtualDisplayHandle?
+    private var virtualDisplay: VirtualDisplayLeasing?
     private var managedDisplay: ManagedDisplay?
     private var guardian: WindowGuardian?
     private var timer: DispatchSourceTimer?
@@ -60,8 +60,12 @@ final class WorkspaceSession {
                 message: nil
             ))
 
+            let anchorDisplayID = displayService.primaryDisplay()?.id ?? CGMainDisplayID()
             let createdDisplay = try virtualDisplayProvisioner.createDisplay(spec: displaySpec(configuration: configuration))
-            let display = try waitForDisplay(id: createdDisplay.displayID)
+            let display = try arrangedDisplay(
+                for: createdDisplay.displayID,
+                anchorDisplayID: anchorDisplayID
+            )
             let createdGuardian = WindowGuardian(
                 configuration: configuration,
                 displayService: fixedDisplayService(displayID: display.id),
@@ -76,7 +80,7 @@ final class WorkspaceSession {
             pinnedAppPaths = [configuration.targetAppPath]
             try saveUserConfiguration(configuration: configuration, profile: params?.profile)
             observeWorkspaceLifecycle(configuration: configuration)
-            handleGuardianResult(createdGuardian.enforceOnce(), configuration: configuration, display: display)
+            handleGuardianResult(createdGuardian.enforceWithRetry(), configuration: configuration, display: display)
             startTimer(configuration: configuration, guardian: createdGuardian)
 
             let status = makeStatus(
@@ -87,6 +91,59 @@ final class WorkspaceSession {
             )
             try stateStore.save(status)
             AgentLog.info("Started workspace on \(display.name) id=\(display.id).")
+            emit(event: .workspaceStarted, status: status, reason: nil)
+            return status
+        }
+    }
+
+    func startDisplay(params: StartWorkspaceParams?) throws -> AgentStatus {
+        try queue.sync {
+            if virtualDisplay != nil {
+                let configuration = activeConfiguration ?? baseConfiguration
+                return makeStatus(
+                    state: .running,
+                    configuration: configuration,
+                    display: managedDisplay,
+                    message: "Virtual display is already running."
+                )
+            }
+
+            let configuration = try VirtualDeskConfiguration.resolved(
+                base: baseConfiguration,
+                config: configurationStore.load(),
+                params: params,
+                validateTargetApp: false
+            )
+            try stateStore.save(makeStatus(
+                state: .starting,
+                configuration: configuration,
+                display: nil,
+                message: "Creating virtual display."
+            ))
+
+            let anchorDisplayID = displayService.primaryDisplay()?.id ?? CGMainDisplayID()
+            let createdDisplay = try virtualDisplayProvisioner.createDisplay(spec: displaySpec(configuration: configuration))
+            let display = try arrangedDisplay(
+                for: createdDisplay.displayID,
+                anchorDisplayID: anchorDisplayID
+            )
+
+            activeConfiguration = configuration
+            virtualDisplay = createdDisplay
+            managedDisplay = display
+            guardian = nil
+            pinnedAppPaths = []
+            try saveUserConfiguration(configuration: configuration, profile: params?.profile)
+            observeDisplayLifecycle()
+
+            let status = makeStatus(
+                state: .running,
+                configuration: configuration,
+                display: display,
+                message: "Virtual display is ready."
+            )
+            try stateStore.save(status)
+            AgentLog.info("Started display-only workspace on \(display.name) id=\(display.id).")
             emit(event: .workspaceStarted, status: status, reason: nil)
             return status
         }
@@ -209,7 +266,7 @@ final class WorkspaceSession {
         rememberPinnedApp(path: nextConfiguration.targetAppPath)
         try saveUserConfiguration(configuration: nextConfiguration, profile: params?.profile)
         observeWorkspaceLifecycle(configuration: nextConfiguration)
-        handleGuardianResult(nextGuardian.enforceOnce(), configuration: nextConfiguration, display: display)
+        handleGuardianResult(nextGuardian.enforceWithRetry(), configuration: nextConfiguration, display: display)
         startTimer(configuration: nextConfiguration, guardian: nextGuardian)
 
         let status = makeStatus(
@@ -269,6 +326,20 @@ final class WorkspaceSession {
         throw VirtualDeskError.virtualDisplayNotReady(id)
     }
 
+    private func arrangedDisplay(
+        for displayID: CGDirectDisplayID,
+        anchorDisplayID: CGDirectDisplayID
+    ) throws -> ManagedDisplay {
+        let initialDisplay = try waitForDisplay(id: displayID)
+        if DisplayArrangement.placeVirtualDisplay(id: displayID, anchorDisplayID: anchorDisplayID) {
+            Thread.sleep(forTimeInterval: 0.2)
+            return displayService.findDisplay(id: displayID) ?? initialDisplay
+        }
+
+        AgentLog.warning("Could not arrange virtual display away from the primary display.")
+        return initialDisplay
+    }
+
     private func makeStatus(
         state: WorkspaceState,
         configuration: VirtualDeskConfiguration,
@@ -285,7 +356,7 @@ final class WorkspaceSession {
             ),
             window: currentTargetWindowSnapshot(configuration: configuration),
             guardStatus: GuardSnapshot(
-                enabled: state == .running,
+                enabled: state == .running && guardian != nil,
                 intervalMS: Int(configuration.guardianInterval * 1000)
             ),
             message: message
@@ -303,12 +374,20 @@ final class WorkspaceSession {
     }
 
     private func observeWorkspaceLifecycle(configuration: VirtualDeskConfiguration) {
-        let appURL = URL(fileURLWithPath: configuration.targetAppPath)
+        observeDisplayLifecycle()
+        observeTargetAppLifecycle(configuration: configuration)
+    }
+
+    private func observeDisplayLifecycle() {
         observers.observeDisplayChange { [weak self] in
             self?.queue.async {
                 self?.handleDisplayChange()
             }
         }
+    }
+
+    private func observeTargetAppLifecycle(configuration: VirtualDeskConfiguration) {
+        let appURL = URL(fileURLWithPath: configuration.targetAppPath)
         observers.observeAppLifecycle(
             bundleURL: appURL,
             onTerminate: { [weak self] in
@@ -406,7 +485,7 @@ final class WorkspaceSession {
     }
 
     private func restorePinnedWindowsToPrimaryDisplay(fallbackConfiguration: VirtualDeskConfiguration) {
-        let paths = pinnedAppPaths.isEmpty ? [fallbackConfiguration.targetAppPath] : pinnedAppPaths
+        let paths = WorkspaceRestorePlanner.pathsToRestore(pinnedAppPaths: pinnedAppPaths)
         paths.forEach { appPath in
             restoreWindowToPrimaryDisplay(appPath: appPath)
         }
@@ -426,6 +505,12 @@ final class WorkspaceSession {
         } catch {
             AgentLog.warning("Failed to restore target window: \(error.localizedDescription)")
         }
+    }
+}
+
+enum WorkspaceRestorePlanner {
+    static func pathsToRestore(pinnedAppPaths: [String]) -> [String] {
+        pinnedAppPaths
     }
 }
 
