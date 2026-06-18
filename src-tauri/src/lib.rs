@@ -3,48 +3,46 @@ mod agent_manager;
 use agent_manager::AgentManager;
 use tauri::Manager;
 
+async fn agent_request(
+    app: &tauri::AppHandle,
+    method: &str,
+    params: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let manager = app.state::<AgentManager>();
+    manager
+        .start(app.clone())
+        .map_err(|error| error.to_string())?;
+    manager.request(method, params).await
+}
+
 #[tauri::command]
 async fn agent_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    let manager = app.state::<AgentManager>();
-    manager.request("status", serde_json::json!({})).await
+    agent_request(&app, "status", serde_json::json!({})).await
 }
 
 #[tauri::command]
 async fn accessibility_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    let manager = app.state::<AgentManager>();
-    manager
-        .request("accessibility_status", serde_json::json!({}))
-        .await
+    agent_request(&app, "accessibility_status", serde_json::json!({})).await
 }
 
 #[tauri::command]
 async fn request_accessibility(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    let manager = app.state::<AgentManager>();
-    manager
-        .request("request_accessibility", serde_json::json!({}))
-        .await
+    agent_request(&app, "request_accessibility", serde_json::json!({})).await
 }
 
 #[tauri::command]
 async fn screen_capture_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    let manager = app.state::<AgentManager>();
-    manager
-        .request("screen_capture_status", serde_json::json!({}))
-        .await
+    agent_request(&app, "screen_capture_status", serde_json::json!({})).await
 }
 
 #[tauri::command]
 async fn request_screen_capture(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    let manager = app.state::<AgentManager>();
-    manager
-        .request("request_screen_capture", serde_json::json!({}))
-        .await
+    agent_request(&app, "request_screen_capture", serde_json::json!({})).await
 }
 
 #[tauri::command]
 async fn list_apps(app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, String> {
-    let manager = app.state::<AgentManager>();
-    let response = manager.request("list_apps", serde_json::json!({})).await?;
+    let response = agent_request(&app, "list_apps", serde_json::json!({})).await?;
     Ok(response
         .get("apps")
         .and_then(|apps| apps.as_array())
@@ -57,36 +55,29 @@ async fn start_workspace(
     app: tauri::AppHandle,
     app_path: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let manager = app.state::<AgentManager>();
-    manager
-        .request(
-            "start_workspace",
-            serde_json::json!({
-                "app_path": app_path,
-                "width": 1440,
-                "height": 900,
-                "refresh_rate": 60,
-                "hidpi": true,
-                "profile": "codex_mobile_1440x900"
-            }),
-        )
-        .await
+    agent_request(
+        &app,
+        "start_workspace",
+        serde_json::json!({
+            "app_path": app_path,
+            "width": 1440,
+            "height": 900,
+            "refresh_rate": 60,
+            "hidpi": true,
+            "profile": "codex_mobile_1440x900"
+        }),
+    )
+    .await
 }
 
 #[tauri::command]
 async fn stop_workspace(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    let manager = app.state::<AgentManager>();
-    manager
-        .request("stop_workspace", serde_json::json!({}))
-        .await
+    agent_request(&app, "stop_workspace", serde_json::json!({})).await
 }
 
 #[tauri::command]
 async fn capture_screen(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    let manager = app.state::<AgentManager>();
-    manager
-        .request("capture_screen", serde_json::json!({}))
-        .await
+    agent_request(&app, "capture_screen", serde_json::json!({})).await
 }
 
 pub fn run() {
@@ -106,7 +97,9 @@ pub fn run() {
         ])
         .setup(|app| {
             let manager = app.state::<AgentManager>();
-            manager.start(app.handle().clone())?;
+            if let Err(error) = manager.start(app.handle().clone()) {
+                eprintln!("[virtualdesk-agent] failed to start during setup: {error}");
+            }
             Ok(())
         })
         .on_window_event(|window, event| {
