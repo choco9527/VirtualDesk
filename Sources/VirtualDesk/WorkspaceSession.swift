@@ -199,27 +199,8 @@ final class WorkspaceSession {
         }
     }
 
-    func listDisplays() -> DisplayListResult {
-        let virtualDisplayID = virtualDisplay?.displayID
-        let displays = displayService.availableDisplays().map { display in
-            DisplaySnapshot(display: display, virtualDisplayID: virtualDisplayID)
-        }
-
-        return DisplayListResult(displays: displays)
-    }
-
     func listApps() -> AppListResult {
         AppListResult(apps: appService.listRunnableApps())
-    }
-
-    func captureScreen() throws -> ScreenCaptureResult {
-        try queue.sync {
-            guard let displayID = virtualDisplay?.displayID else {
-                throw VirtualDeskError.workspaceNotRunning
-            }
-
-            return try ScreenCaptureService.capture(displayID: displayID)
-        }
     }
 
     private func startTimer(configuration: VirtualDeskConfiguration, guardian: WindowGuardian) {

@@ -62,16 +62,8 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
                 sendAccessibilityStatus(id: request.id, prompt: false)
             case .requestAccessibility:
                 sendAccessibilityStatus(id: request.id, prompt: true)
-            case .screenCaptureStatus:
-                sendScreenCaptureStatus(id: request.id, prompt: false)
-            case .requestScreenCapture:
-                sendScreenCaptureStatus(id: request.id, prompt: true)
-            case .listDisplays:
-                sendDisplayList(id: request.id)
             case .listApps:
                 sendAppList(id: request.id)
-            case .captureScreen:
-                sendScreenCapture(id: request.id)
             case .startDisplay:
                 try startDisplay(data: data)
             case .startWorkspace:
@@ -95,7 +87,6 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
                 windowControl: true,
                 stopWorkspace: true,
                 listApps: true,
-                captureScreen: true,
                 startDisplay: true
             )
         )
@@ -106,22 +97,8 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
         router.send(CommandResponse.success(id: id, result: session.status()))
     }
 
-    private func sendDisplayList(id: String) {
-        router.send(CommandResponse.success(id: id, result: session.listDisplays()))
-    }
-
     private func sendAppList(id: String) {
         router.send(CommandResponse.success(id: id, result: session.listApps()))
-    }
-
-    private func sendScreenCapture(id: String) {
-        do {
-            router.send(CommandResponse.success(id: id, result: try session.captureScreen()))
-        } catch {
-            let payload = (error as? VirtualDeskError)?.payload
-                ?? VirtualDeskError.internalError(error.localizedDescription).payload
-            router.sendFailure(id: id, error: payload)
-        }
     }
 
     private func sendAccessibilityStatus(id: String, prompt: Bool) {
@@ -130,17 +107,6 @@ final class VirtualDeskAgent: WorkspaceSessionEventSink {
             trusted: trusted,
             promptShown: prompt && !trusted,
             message: trusted ? nil : "Enable VirtualDesk in System Settings > Privacy & Security > Accessibility."
-        )
-
-        router.send(CommandResponse.success(id: id, result: result))
-    }
-
-    private func sendScreenCaptureStatus(id: String, prompt: Bool) {
-        let trusted = prompt ? ScreenCaptureService.requestAccess() : ScreenCaptureService.isAuthorized()
-        let result = AccessibilityResult(
-            trusted: trusted,
-            promptShown: prompt && !trusted,
-            message: trusted ? nil : "Enable virtualdesk-agent or the VirtualDesk debug binary in System Settings > Privacy & Security > Screen & System Audio Recording."
         )
 
         router.send(CommandResponse.success(id: id, result: result))

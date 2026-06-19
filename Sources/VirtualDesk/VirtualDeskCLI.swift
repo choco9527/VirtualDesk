@@ -34,8 +34,6 @@ final class VirtualDeskCLI {
             stopWorkspace()
         case "create-screen":
             createScreen()
-        case "list":
-            listDisplays()
         case "list-apps":
             listApps()
         case "pin":
@@ -46,20 +44,6 @@ final class VirtualDeskCLI {
             printHelp()
         default:
             fail("Unknown command: \(command)")
-        }
-    }
-
-    private func listDisplays() {
-        let displays = displayService.availableDisplays()
-
-        if displays.isEmpty {
-            print("No displays found.")
-            return
-        }
-
-        displays.forEach { display in
-            let marker = display.matches(configuration.targetDisplayKeywords) ? "*" : " "
-            print("\(marker) \(display.id) \(display.name) frame=\(display.frame) visible=\(display.visibleFrame)")
         }
     }
 

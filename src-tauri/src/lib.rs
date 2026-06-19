@@ -1,13 +1,9 @@
 mod agent_manager;
+mod privacy;
 
 use agent_manager::AgentManager;
+use privacy::PrivacySettingsPane;
 use tauri::Manager;
-
-#[derive(serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-enum PrivacySettingsPane {
-    Accessibility,
-}
 
 #[derive(serde::Deserialize)]
 struct DisplayParams {
@@ -36,13 +32,13 @@ async fn agent_status(app: tauri::AppHandle) -> Result<serde_json::Value, String
 }
 
 #[tauri::command]
-async fn accessibility_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    agent_request(&app, "accessibility_status", serde_json::json!({})).await
+async fn accessibility_status() -> Result<privacy::PermissionStatus, String> {
+    Ok(privacy::accessibility_status(false))
 }
 
 #[tauri::command]
-async fn request_accessibility(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    agent_request(&app, "request_accessibility", serde_json::json!({})).await
+async fn request_accessibility() -> Result<privacy::PermissionStatus, String> {
+    Ok(privacy::accessibility_status(true))
 }
 
 #[tauri::command]
@@ -51,16 +47,6 @@ async fn list_apps(app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, Stri
     Ok(response
         .get("apps")
         .and_then(|apps| apps.as_array())
-        .cloned()
-        .unwrap_or_default())
-}
-
-#[tauri::command]
-async fn list_displays(app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, String> {
-    let response = agent_request(&app, "list_displays", serde_json::json!({})).await?;
-    Ok(response
-        .get("displays")
-        .and_then(|displays| displays.as_array())
         .cloned()
         .unwrap_or_default())
 }
@@ -149,7 +135,6 @@ pub fn run() {
             accessibility_status,
             request_accessibility,
             list_apps,
-            list_displays,
             start_display,
             start_workspace,
             stop_workspace,

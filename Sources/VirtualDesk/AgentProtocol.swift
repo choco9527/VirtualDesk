@@ -16,11 +16,7 @@ enum AgentMethod: String, Codable {
     case status
     case accessibilityStatus = "accessibility_status"
     case requestAccessibility = "request_accessibility"
-    case screenCaptureStatus = "screen_capture_status"
-    case requestScreenCapture = "request_screen_capture"
-    case listDisplays = "list_displays"
     case listApps = "list_apps"
-    case captureScreen = "capture_screen"
     case startDisplay = "start_display"
     case startWorkspace = "start_workspace"
     case stopWorkspace = "stop_workspace"
@@ -82,7 +78,6 @@ struct AgentSupportFlags: Codable {
     let windowControl: Bool
     let stopWorkspace: Bool
     let listApps: Bool
-    let captureScreen: Bool
     let startDisplay: Bool
 
     enum CodingKeys: String, CodingKey {
@@ -90,8 +85,7 @@ struct AgentSupportFlags: Codable {
         case windowControl = "window_control"
         case stopWorkspace = "stop_workspace"
         case listApps = "list_apps"
-        case captureScreen = "capture_screen"
-        case startDisplay = "start_display"
+            case startDisplay = "start_display"
     }
 }
 
@@ -99,24 +93,8 @@ struct MessageResult: Codable {
     let message: String
 }
 
-struct DisplayListResult: Codable {
-    let displays: [DisplaySnapshot]
-}
-
 struct AppListResult: Codable {
     let apps: [AppSnapshot]
-}
-
-struct ScreenCaptureResult: Codable {
-    let displayID: UInt32
-    let mimeType: String
-    let imageBase64: String
-
-    enum CodingKeys: String, CodingKey {
-        case displayID = "display_id"
-        case mimeType = "mime_type"
-        case imageBase64 = "image_base64"
-    }
 }
 
 struct AppSnapshot: Codable, Equatable {

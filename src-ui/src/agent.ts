@@ -39,24 +39,6 @@ export interface AgentStatus {
   message?: string
 }
 
-export interface DisplaySnapshot {
-  id: number
-  name: string
-  frame: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }
-  visible_frame: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }
-  is_virtual: boolean
-}
-
 export interface VirtualDisplaySpec {
   width: number
   height: number
@@ -91,6 +73,7 @@ export async function requestAccessibility(): Promise<PermissionStatus> {
   return invoke<PermissionStatus>('request_accessibility')
 }
 
+
 export async function openPrivacySettings(
   pane: 'accessibility'
 ): Promise<void> {
@@ -101,9 +84,6 @@ export async function listApps(): Promise<AppEntry[]> {
   return invoke<AppEntry[]>('list_apps')
 }
 
-export async function listDisplays(): Promise<DisplaySnapshot[]> {
-  return invoke<DisplaySnapshot[]>('list_displays')
-}
 
 export async function startDisplay(params?: VirtualDisplaySpec): Promise<AgentStatus> {
   return invoke<AgentStatus>('start_display', { params })

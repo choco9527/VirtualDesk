@@ -25,7 +25,6 @@ final class ProtocolShapeTests: XCTestCase {
                 windowControl: true,
                 stopWorkspace: true,
                 listApps: true,
-                captureScreen: true,
                 startDisplay: true
             )
         )
@@ -36,7 +35,6 @@ final class ProtocolShapeTests: XCTestCase {
         XCTAssertTrue(result.supports.windowControl)
         XCTAssertTrue(result.supports.stopWorkspace)
         XCTAssertTrue(result.supports.listApps)
-        XCTAssertTrue(result.supports.captureScreen)
         XCTAssertTrue(result.supports.startDisplay)
     }
 

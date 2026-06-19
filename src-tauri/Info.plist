@@ -4,7 +4,5 @@
 <dict>
   <key>NSAppleEventsUsageDescription</key>
   <string>VirtualDesk needs Automation access to activate and move selected application windows into the virtual display.</string>
-  <key>NSScreenCaptureUsageDescription</key>
-  <string>VirtualDesk needs Screen Recording access to preview the virtual display inside the app.</string>
 </dict>
 </plist>

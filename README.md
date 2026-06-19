@@ -35,7 +35,7 @@ The repository now includes a Tauri + React shell that moves toward the final pr
 - Right panel: phone-sized virtual screen frame.
 - The switch only calls `start_display`; it does not move any app by default.
 - Dragging an app into the phone frame calls `start_workspace`; users must enable the virtual display first, then drag an app into it.
-- Current preview: polls `capture_screen` and renders PNG snapshots from the virtual display. ScreenCaptureKit is still the future path for smoother preview.
+- The app does not capture or preview screen pixels; remote software is responsible for viewing the virtual display.
 - Windows is not implemented in this phase; current work remains macOS-only, with future Windows support reserved at the architecture level.
 
 ```bash
@@ -67,20 +67,16 @@ Supported requests:
 {"id":"1","method":"status","params":{}}
 {"id":"2","method":"accessibility_status","params":{}}
 {"id":"3","method":"request_accessibility","params":{}}
-{"id":"4","method":"screen_capture_status","params":{}}
-{"id":"5","method":"request_screen_capture","params":{}}
-{"id":"6","method":"list_displays","params":{}}
-{"id":"7","method":"list_apps","params":{}}
-{"id":"8","method":"capture_screen","params":{}}
-{"id":"9","method":"start_display","params":{"width":1440,"height":900,"refresh_rate":60,"hidpi":true,"profile":"codex_mobile_1440x900"}}
-{"id":"10","method":"start_workspace","params":{"app_path":"/Applications/Codex.app","width":1440,"height":900,"refresh_rate":60,"hidpi":true,"profile":"codex_mobile_1440x900"}}
-{"id":"11","method":"stop_workspace","params":{}}
+{"id":"4","method":"list_apps","params":{}}
+{"id":"5","method":"start_display","params":{"width":1440,"height":900,"refresh_rate":60,"hidpi":true,"profile":"codex_mobile_1440x900"}}
+{"id":"6","method":"start_workspace","params":{"app_path":"/Applications/Codex.app","width":1440,"height":900,"refresh_rate":60,"hidpi":true,"profile":"codex_mobile_1440x900"}}
+{"id":"7","method":"stop_workspace","params":{}}
 ```
 
 Responses and events are single-line JSON:
 
 ```json
-{"id":"0","ok":true,"result":{"platform":"macos","protocol_version":"1.0","supports":{"virtual_display":true,"window_control":true,"stop_workspace":true,"list_apps":true,"capture_screen":true,"start_display":true}}}
+{"id":"0","ok":true,"result":{"platform":"macos","protocol_version":"1.0","supports":{"virtual_display":true,"window_control":true,"stop_workspace":true,"list_apps":true,"start_display":true}}}
 {"id":"1","ok":false,"error":{"code":"INVALID_PARAMS","message":"Invalid params: refresh_rate must be one of: 30, 60, 120."}}
 {"event":"workspace_stopped","data":{"status":{"state":"stopped"},"reason":null}}
 ```

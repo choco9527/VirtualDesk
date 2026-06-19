@@ -6,14 +6,12 @@ import {
   AgentStatus,
   AGENT_TERMINATED_EVENT,
   DISPLAY_LOST_EVENT,
-  DisplaySnapshot,
   PermissionStatus,
   VirtualDisplaySpec,
   getAccessibilityStatus,
   getStatus,
   listenAgentEvents,
   listApps,
-  listDisplays,
   openPrivacySettings,
   requestAccessibility,
   startDisplay,
@@ -86,13 +84,12 @@ export function App() {
   const [selectedAppPath, setSelectedAppPath] = useState('/Applications/Codex.app')
   const [status, setStatus] = useState<AgentStatus>({ state: 'stopped' })
   const [accessibility, setAccessibility] = useState<PermissionStatus | null>(null)
-  const [displays, setDisplays] = useState<DisplaySnapshot[]>([])
   const [selectedPresetId, setSelectedPresetId] = useState(DEFAULT_PRESET_ID)
   const [error, setError] = useState<string | null>(null)
   const [agentTerminated, setAgentTerminated] = useState(false)
   const [workspaceAction, setWorkspaceAction] = useState<string | null>(null)
   const sortedApps = useMemo(() => [...apps].sort(compareApps), [apps])
-  const displayPresets = useMemo(() => buildDisplayPresets(displays), [displays])
+  const displayPresets = STATIC_DISPLAY_PRESETS
   const selectedPreset = displayPresets.find(preset => preset.id === selectedPresetId)
     ?? displayPresets.find(preset => preset.id === DEFAULT_PRESET_ID)
     ?? DEFAULT_DISPLAY_PRESET
@@ -237,17 +234,14 @@ export function App() {
       const [
         nextStatus,
         nextApps,
-        nextDisplays,
         nextAccessibility,
       ] = await Promise.all([
         getStatus(),
         listApps(),
-        listDisplays(),
         getAccessibilityStatus(),
       ])
       setStatus(nextStatus)
       setApps(nextApps)
-      setDisplays(nextDisplays)
       setAccessibility(nextAccessibility)
       setAgentTerminated(false)
     } catch (nextError) {
@@ -272,7 +266,7 @@ export function App() {
     }
   }
 
-  async function requestPermission(kind: 'accessibility') {
+  async function requestPermission() {
     setError(null)
     try {
       const result = await requestAccessibility()
@@ -283,10 +277,10 @@ export function App() {
     }
   }
 
-  async function openPermissionSettings(kind: 'accessibility') {
+  async function openPermissionSettings() {
     setError(null)
     try {
-      await openPrivacySettings(kind)
+      await openPrivacySettings('accessibility')
     } catch (nextError) {
       setError((nextError as Error).message)
     }
@@ -426,8 +420,8 @@ export function App() {
           label="辅助功能"
           message={accessibility?.message ?? '允许 VirtualDesk 移动和守护应用窗口。'}
           status={accessibility}
-          onRequest={() => requestPermission('accessibility')}
-          onOpenSettings={() => openPermissionSettings('accessibility')}
+          onRequest={requestPermission}
+          onOpenSettings={openPermissionSettings}
         />
       </section>
 
@@ -527,30 +521,6 @@ export function App() {
       </section>
     </main>
   )
-}
-
-function buildDisplayPresets(displays: DisplaySnapshot[]): DisplayPreset[] {
-  const physicalDisplayPresets = displays
-    .filter(display => !display.is_virtual)
-    .map(display => {
-      const width = Math.round(display.frame.width)
-      const height = Math.round(display.frame.height)
-
-      return {
-        id: `display-${display.id}`,
-        label: display.name ? `当前: ${display.name}` : '当前屏幕',
-        spec: {
-          width,
-          height,
-          refresh_rate: 60,
-          hidpi: true,
-          profile: DEFAULT_PROFILE,
-        },
-      }
-    })
-    .filter(preset => preset.spec.width >= 640 && preset.spec.height >= 480)
-
-  return [...physicalDisplayPresets, ...STATIC_DISPLAY_PRESETS]
 }
 
 type TauriRuntimeWindow = Window & {
